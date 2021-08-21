@@ -1,0 +1,3136 @@
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>文档</title>
+  <link href="./css/semantic/semantic.min.css" rel="stylesheet">
+  <link href="./css/markdown.css" rel="stylesheet">
+  <style>
+    body{padding-top:0;background:#f7f7f7}
+    body>.ui.container{width:100%;padding:0}
+    #project-title{background:#6e6e6e;width:100%;line-height:3.572rem;color:#fff;font-size:1.2rem}
+    #project-title .title-wrap{font-weight:700;padding:0 12px;width:100%;max-width:1366px!important;min-width:900px;margin:0 auto}
+    #project-title .left,#project-title right{display:inline-block}
+    #project-title .right{float:right}
+    #project-title .right .wiki-actions .menu{left:auto;right:0;margin-top:.4em!important}
+    #wiki-preview-container{width:100%;max-width:1366px!important;min-width:900px;padding:0;border:1px solid #e3e9ed;border-top:0}
+    #wiki-preview>.ui.segment{margin-top:0;padding:1rem;padding-left:0;border:0}
+    .hover-places{display:inline-block}
+    #page-detail{width:60%;margin:0 auto}
+    #page-detail .title{font-weight:700;font-size:24px;padding:12px 0;border-bottom:1px solid #ccc}
+    #page-detail .content{margin-top:15px}
+    .content p{word-wrap:break-word}
+    #wiki-parent,#wiki-title,#wikis{display:none}
+    .ui.grid{padding:0!important}
+    #ex-all{cursor:pointer;color:#537c8d}
+  </style>
+</head>
+<body>
+  <div class="ui container">
+    <div id="project-title">
+      <div class="title-wrap">
+        <div class="left">
+          <i class="icon eye"></i>
+          文档预览:
+          CodeRes
+        </div>
+        <div class="right">
+          Export by Gitee
+        </div>
+      </div>
+    </div>
+
+    <div class="ui container" id="wiki-preview-container">
+      <div id="wiki-preview">
+        <div class="ui segment">
+          <div id="page-detail" class="markdown-body">
+            <div class='title'>屏幕适配</div><div class='content'><p>转自：<a href="https://www.jianshu.com/p/0efcf4ad5963">https://www.jianshu.com/p/0efcf4ad5963</a></p>
+<p>Android刘海屏适配</p>
+<ol>
+<li>前言
+在我们进行APP开发时，屏幕适配是一件很头疼的事，而Android又相对iOS的较为混杂，各种各样厂商和屏幕类型，有全面屏、刘海屏、水滴屏、钻孔屏、折叠屏、挖孔屏等等，所以在适配的过程中需要考虑不少东西。以下记录一下我在适配过程中遇到的厂商和解决方案。(如有更好的意见可以一起探讨 ^ _ ^ )</li>
+</ol>
+<p>在适配之前需要先了解 刘海屏的开关设置 和 以下三个类的代码内容。</p>
+<p>刘海屏除了正常的开关之外，当开启刘海屏时还有一个自定义显示刘海区域的选项，在这里面也可以控制刘海的显示，所以有些设备并不是开着刘海获取到的刘海状态就是开着的。</p>
+<p>BTDeviceFather抽象类，每个厂商适配类都需要继承这个父类。根据每个厂商的特色重写需要实现的方法。</p>
+<pre><code>import android.graphics.Point;
+
+abstract class BTDeviceFather {
+
+    /**
+     * 刘海宽度
+     * 
+     * @return
+     */
+    public int getNotchWidth() {
+        return 0;
+    }
+
+    /**
+     * 刘海高度
+     * 
+     * @return
+     */
+    public int getNotchHeigth() {
+        return 0;
+    }
+
+    /**
+     * 屏幕底部危险高度
+     * 
+     * @return
+     */
+    public int getBottomDangerHeigth() {
+        return 0;
+    }
+
+    /**
+     * 是否隐藏刘海
+     * 
+     * @return
+     */
+    public boolean isHideNotch() {
+        return false;
+    }
+
+    /**
+     * 是否支持刘海
+     * 
+     * @return
+     */
+    public boolean isSupportNotch() {
+        return false;
+    }
+
+    /**
+     * 获取设备(Physical Size)真实分辨率
+     * 
+     * @return
+     */
+    public Point getResolution() {
+        return DeviceTools.getScreenRealSize();
+    }
+
+}
+</code></pre>
+<p>DeviceTools工具类，含有各种获取状态栏高度、导航条高度、屏幕宽高等通用方法。</p>
+<pre><code>import java.lang.reflect.Method;
+
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Point;
+import android.os.Build;
+import android.util.DisplayMetrics;
+import android.view.Display;
+import android.view.View;
+import android.view.WindowManager;
+
+public class DeviceTools {
+
+    /**
+     * 是否支持全面屏系统 Android N+
+     * 
+     * @return
+     */
+    public static boolean isSupportAndroidVersion() {
+        return Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.N;
+    }
+
+    /**
+     * 获取屏幕真实分辨率(除vivo系统)
+     * 
+     * @return
+     */
+    @SuppressWarnings("deprecation")
+    public static Point getScreenRealSize() {
+        Point screenSize = null;
+        try {
+            screenSize = new Point();
+            WindowManager windowManager = (WindowManager) BTDeviceSDK.getInstance().getActivity().getSystemService(Context.WINDOW_SERVICE);
+            Display defaultDisplay = windowManager.getDefaultDisplay();
+            if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                defaultDisplay.getRealSize(screenSize);
+            } else {
+                try {
+                    Method mGetRawW = Display.class.getMethod("getRawWidth");
+                    Method mGetRawH = Display.class.getMethod("getRawHeight");
+                    screenSize.set((Integer) mGetRawW.invoke(defaultDisplay), (Integer) mGetRawH.invoke(defaultDisplay));
+                } catch (Exception e) {
+                    screenSize.set(defaultDisplay.getWidth(), defaultDisplay.getHeight());
+                    e.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return screenSize;
+    }
+
+    /**
+     * 获取显示分辨率
+     * 
+     * @param activity
+     * @return
+     */
+    public static Point getScreenDisplaySize(Activity activity) {
+        DisplayMetrics dm = activity.getResources().getDisplayMetrics();
+        Point screenSize = new Point();
+        screenSize.set(dm.widthPixels, dm.heightPixels);
+        return screenSize;
+    }
+
+    /**
+     * 获取截图分辨率
+     */
+    @SuppressWarnings("deprecation")
+    public static Point getScreenShotSize() {
+        View view = BTDeviceSDK.getInstance().getActivity().getWindow().getDecorView();
+        view.setDrawingCacheEnabled(true);
+        view.buildDrawingCache();
+        Bitmap bmp = view.getDrawingCache();
+        Point screenSize = new Point();
+        if (bmp != null) {
+            screenSize.set(bmp.getWidth(), bmp.getHeight());
+        }
+        return screenSize;
+    }
+
+    /**
+     * 获取状态栏高度
+     * 
+     * @return
+     */
+    public static int getStatusBarHeight(Activity activity) {
+        int result = 0;
+        int resourceId = activity.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId &gt; 0) {
+            result = activity.getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
+    /**
+     * 获取导航栏高度
+     * 
+     * @return
+     */
+    public static int getNavigationBarHeight(Activity activity) {
+        int resourceId = 0;
+        int rid = activity.getResources().getIdentifier("config_showNavigationBar", "bool", "android");
+        if (rid != 0) {
+            resourceId = activity.getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+            return activity.getResources().getDimensionPixelSize(resourceId);
+        }
+        return 0;
+    }
+
+}
+</code></pre>
+<p>BTDisplayCutout类，获取Android9.0+屏幕安全区域大小方法。</p>
+<pre><code>import java.lang.reflect.Method;
+
+import android.annotation.SuppressLint;
+import android.util.Log;
+import android.view.View;
+import android.view.WindowInsets;
+
+public class BTDisplayCutout {
+
+    private static View mView;
+
+    public static void init(View view) {
+        BTDisplayCutout.mView = view;
+    }
+
+    @SuppressLint("NewApi")
+    private static Object getDisplayCutout(View view) {
+        if (view != null) {
+            Log.d("DisplayCutOutTools", "Build.VERSION.SDK_INT:" + android.os.Build.VERSION.SDK_INT);
+            if (android.os.Build.VERSION.SDK_INT &gt;= android.os.Build.VERSION_CODES.O) {
+                try {
+                    WindowInsets windowInsets = view.getRootWindowInsets();
+                    if (windowInsets != null) {
+                        Method method = windowInsets.getClass().getDeclaredMethod("getDisplayCutout");
+                        return method.invoke(windowInsets);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        Log.d("DisplayCutOutTools", "getDisplayCutout is null.");
+        return null;
+    }
+
+    /**
+     * 获取顶部安全区域高度
+     *
+     * @return
+     */
+    public static int getSafeInsetTop() {
+        try {
+            Object displayCutoutInstance = getDisplayCutout(BTDisplayCutout.mView);
+            if (displayCutoutInstance != null) {
+                Class&lt;?&gt; cls = displayCutoutInstance.getClass();
+                return (Integer) cls.getDeclaredMethod("getSafeInsetTop").invoke(displayCutoutInstance);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * 获取底部安全区域高度
+     *
+     * @return
+     */
+    public static int getSafeInsetBottom() {
+        try {
+            Object displayCutoutInstance = getDisplayCutout(BTDisplayCutout.mView);
+            if (displayCutoutInstance != null) {
+                Class&lt;?&gt; cls = displayCutoutInstance.getClass();
+                return (Integer) cls.getDeclaredMethod("getSafeInsetBottom").invoke(displayCutoutInstance);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * 获取左部安全区域高度
+     *
+     * @return
+     */
+    public static int getSafeInsetLeft() {
+        try {
+            Object displayCutoutInstance = getDisplayCutout(BTDisplayCutout.mView);
+            if (displayCutoutInstance != null) {
+                Class&lt;?&gt; cls = displayCutoutInstance.getClass();
+                return (Integer) cls.getDeclaredMethod("getSafeInsetLeft").invoke(displayCutoutInstance);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * 获取右部安全区域高度
+     *
+     * @return
+     */
+    public static int getSafeInsetRight() {
+        try {
+            Object displayCutoutInstance = getDisplayCutout(BTDisplayCutout.mView);
+            if (displayCutoutInstance != null) {
+                Class&lt;?&gt; cls = displayCutoutInstance.getClass();
+                return (Integer) cls.getDeclaredMethod("getSafeInsetRight").invoke(displayCutoutInstance);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+}
+</code></pre>
+<ol start="2">
+<li>华为屏幕适配
+官方文档: <a href="https://developer.huawei.com/consumer/cn/devservice/doc/50114">https://developer.huawei.com/consumer/cn/devservice/doc/50114</a>
+</li>
+</ol>
+<pre><code>import java.lang.reflect.Method;
+
+import android.graphics.Point;
+import android.provider.Settings;
+import android.util.Log;
+
+/**
+ * 
+ * 需要再AndroidManifest.xml中配置
+ * 
+ * &lt;meta-data android:name="android.notch_support" android:value="true"/&gt;
+ * 
+ * @author Cylee
+ *
+ */
+class BTHuawei extends BTDeviceFather {
+
+    private String TAG = "BTHuawei";
+
+    @Override
+    public boolean isSupportNotch() {
+        try {
+            ClassLoader cl = BTDeviceSDK.getInstance().getActivity().getClassLoader();
+            Class&lt;?&gt; HwNotchSizeUtil = cl.loadClass("com.huawei.android.util.HwNotchSizeUtil");
+            Method get = HwNotchSizeUtil.getMethod("hasNotchInScreen");
+            return (Boolean) get.invoke(HwNotchSizeUtil);
+        } catch (ClassNotFoundException e) {
+            Log.e(TAG, "isFeatureSupport ClassNotFoundException");
+        } catch (NoSuchMethodException e) {
+            Log.e(TAG, "isFeatureSupport NoSuchMethodException");
+        } catch (Exception e) {
+            Log.e(TAG, "isFeatureSupport Exception");
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        boolean isHide = Settings.Secure.getInt(BTDeviceSDK.getInstance().getActivity().getContentResolver(), "display_notch_status", 0) == 1;
+        if (!isHide) {
+            Point pReal = BTDeviceSDK.getInstance().getResolution();
+            Point pShot = DeviceTools.getScreenShotSize();
+            int realSize = pReal.x &gt; pReal.y ? pReal.x : pReal.y;
+            int shotSize = pShot.x &gt; pShot.y ? pShot.x : pShot.y;
+            int statusBarHeigth = BTDeviceSDK.getInstance().getStatusBarHeight();
+            // 设备分辨率-截图分辨率=状态栏，则代表隐藏刘海
+            int off = realSize - shotSize;
+            if (off == statusBarHeigth || off == statusBarHeigth + 1 || off == statusBarHeigth - 1) {
+                return true;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int getNotchWidth() {
+        // 如果不具备特性或者隐藏了刘海，则返回0
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        return getNotchSize()[0];
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        // 如果不具备特性或者隐藏了刘海，则返回0
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        return getNotchSize()[1];
+    }
+
+    /**
+     * 获取刘海屏凹槽尺寸
+     * 
+     * @param context
+     * @return
+     */
+    private int[] getNotchSize() {
+        int[] ret = new int[] { 0, 0 };
+        try {
+            ClassLoader cl = BTDeviceSDK.getInstance().getActivity().getClassLoader();
+            Class&lt;?&gt; HwNotchSizeUtil = cl.loadClass("com.huawei.android.util.HwNotchSizeUtil");
+            Method get = HwNotchSizeUtil.getMethod("getNotchSize");
+            ret = (int[]) get.invoke(HwNotchSizeUtil);
+        } catch (ClassNotFoundException e) {
+            Log.e(TAG, "getNotcSize ClassNotFoundException");
+        } catch (NoSuchMethodException e) {
+            Log.e(TAG, "getNotcSize NoSuchMethodException");
+        } catch (Exception e) {
+            Log.e(TAG, "getNotcSize Exception");
+        }
+        return ret;
+    }
+}
+</code></pre>
+<ol start="3">
+<li>小米屏幕适配
+官方文档: <a href="https://dev.mi.com/console/doc/detail?pId=1293">https://dev.mi.com/console/doc/detail?pId=1293</a>
+</li>
+</ol>
+<pre><code>import java.lang.reflect.Method;
+
+import android.annotation.SuppressLint;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
+import android.provider.Settings;
+import android.view.Window;
+
+/**
+ * 在AndroidManifest.xml中配置
+ * 
+ * &lt;meta-data android:name="notch.config" android:value="portrait|landscape"/&gt;
+ * 横竖屏都绘制到耳朵区
+ * 
+ * &lt;meta-data android:name="notch.config" android:value="none"/&gt; 不绘制到耳朵区
+ * 
+ * @author Cylee
+ *
+ */
+class BTXiaomi extends BTDeviceFather {
+
+    @Override
+    public boolean isSupportNotch() {
+        try {
+            Class&lt;?&gt; mClassType = Class.forName("android.os.SystemProperties");
+            Method mGetIntMethod = mClassType.getDeclaredMethod("getInt", String.class, int.class);
+            Integer v = (Integer) mGetIntMethod.invoke(mClassType, "ro.miui.notch", 0);
+            return v.intValue() == 1;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        return Settings.Global.getInt(BTDeviceSDK.getInstance().getActivity().getContentResolver(), "force_black", 0) == 1;
+    }
+
+    @Override
+    public int getNotchWidth() {
+        // 如果不具备特性，则返回0
+        if (!isSupportNotch()) {
+            return 0;
+        }
+
+        // 如果隐藏了刘海，则设置不使用耳朵区
+        if (isHideNotch()) {
+            Message msg = new Message();
+            msg.obj = "clearExtraFlags";
+            mHandler.sendMessage(msg);
+            return 0;
+        }
+
+        // 如果显示刘海，则设置使用耳朵区
+        Message msg = new Message();
+        msg.obj = "addExtraFlags";
+        mHandler.sendMessage(msg);
+
+        String model = Build.MODEL;
+        if (model.contains("MI8Lite")) {
+            return 296;
+        }
+        if (model.contains("Redmi 6 Pro")) {
+            return 352;
+        }
+        if (model.contains("MI 8 SE")) {
+            return 540;
+        }
+        if (model.contains("MI 8") || model.contains("MI 8 Explorer Edition") || model.contains("MI 8 UD")) {
+            return 560;
+        }
+        if (model.contains("POCO F1")) {
+            return 588;
+        }
+
+        int result = 0;
+        int resourceId = BTDeviceSDK.getInstance().getActivity().getResources().getIdentifier("notch_width", "dimen", "android");
+        if (resourceId &gt; 0) {
+            result = BTDeviceSDK.getInstance().getActivity().getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        // 如果不具备特性，则返回0
+        if (!isSupportNotch()) {
+            return 0;
+        }
+
+        // 如果隐藏了刘海，则设置不使用耳朵区
+        if (isHideNotch()) {
+            Message msg = new Message();
+            msg.obj = "clearExtraFlags";
+            mHandler.sendMessage(msg);
+            return 0;
+        }
+
+        // 如果显示刘海，则设置使用耳朵区
+        Message msg = new Message();
+        msg.obj = "addExtraFlags";
+        mHandler.sendMessage(msg);
+
+        String model = Build.MODEL;
+        if (model.contains("MI8Lite")) {
+            return 82;
+        }
+        if (model.contains("MI 8 SE")) {
+            return 85;
+        }
+        if (model.contains("POCO F1")) {
+            return 86;
+        }
+        if (model.contains("MI 8") || model.contains("MI 8 Explorer Edition") || model.contains("MI 8 UD") || model.contains("Redmi 6 Pro")) {
+            return 89;
+        }
+        if (model.contains("MI 9")) {
+            return 89;
+        }
+
+        int result = 0;
+        int resourceId = BTDeviceSDK.getInstance().getActivity().getResources().getIdentifier("notch_height", "dimen", "android");
+        if (resourceId &gt; 0) {
+            result = BTDeviceSDK.getInstance().getActivity().getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
+    @SuppressLint("HandlerLeak")
+    private Handler mHandler = new Handler() {
+
+        @Override
+        public void dispatchMessage(Message msg) {
+            String cmd = (String) msg.obj;
+            try {
+                // 此方法需要在主线程上调用，否则会崩溃。
+                Method method = Window.class.getMethod(cmd, int.class);
+                method.invoke(BTDeviceSDK.getInstance().getActivity().getWindow(), 0x00000100 | 0x00000200 | 0x00000400);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+};
+</code></pre>
+<ol start="4">
+<li>VIVO屏幕适配
+官方文档: <a href="https://dev.vivo.com.cn/documentCenter/doc/103">https://dev.vivo.com.cn/documentCenter/doc/103</a>
+</li>
+</ol>
+<pre><code>import java.lang.reflect.Method;
+
+import android.graphics.Point;
+import android.util.Log;
+
+/**
+ * 在AndroidManifest.xml中配置
+ * 
+ * &lt;meta-data android:name="android.vendor.home_indicator"android:value="hide"/&gt;
+ * 隐藏导航栏
+ * 
+ * &lt;meta-data android:name="android.vendor.full_screen" android:value="true" /&gt;
+ * 全屏显示
+ * 
+ * 在对应的Activity中添加下面的meta用于隐藏导航条 &lt;meta-data
+ * android:name="android.vendor.home_indicator" android:value="hide" /&gt;
+ * 
+ * @author Cylee
+ *
+ */
+class BTVivo extends BTDeviceFather {
+
+    private String TAG = "BTVivo";
+
+    @Override
+    public Point getResolution() {
+        int statusBarHeight = BTDeviceSDK.getInstance().getStatusBarHeight();
+        int navigationBarHeight = BTDeviceSDK.getInstance().getNavigationBarHeight();
+        Point pReal = DeviceTools.getScreenRealSize();
+        Point pShot = DeviceTools.getScreenShotSize();
+        int realSize = pReal.x &gt; pReal.y ? pReal.x : pReal.y;
+        int shotSize = pShot.x &gt; pShot.y ? pShot.x : pShot.y;
+        // 由于vivo系统的问题，如果获取的真实分辨率-截图分辨率=状态栏+导航条的高度，则使用显示分辨率
+        if (realSize - shotSize == statusBarHeight + navigationBarHeight) {
+            return DeviceTools.getScreenDisplaySize(BTDeviceSDK.getInstance().getActivity());
+        }
+        return pReal;
+    }
+
+    @Override
+    public boolean isSupportNotch() {
+        try {
+            Class&lt;?&gt; mClass = Class.forName("android.util.FtFeature");
+            Method[] methods = mClass.getDeclaredMethods();
+            Method method = null;
+            for (Method m : methods) {
+                if (m.getName().equalsIgnoreCase("isFeatureSupport")) {
+                    method = m;
+                    break;
+                }
+            }
+            // 0x00000020表示是否有凹槽
+            // 0x00000008表示是否有圆角
+            return (Boolean) method.invoke(null, 0x00000020);
+        } catch (ClassNotFoundException e) {
+            Log.e(TAG, "getFeature ClassNotFoundException");
+        } catch (Exception e) {
+            Log.e(TAG, "getFeature Exception");
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        Point pReal = BTDeviceSDK.getInstance().getResolution();
+        Point pShot = DeviceTools.getScreenShotSize();
+        int realSize = pReal.x &gt; pReal.y ? pReal.x : pReal.y;
+        int shotSize = pShot.x &gt; pShot.y ? pShot.x : pShot.y;
+        int statusBarHeigth = BTDeviceSDK.getInstance().getStatusBarHeight();
+        // 设备分辨率-截图分辨率=状态栏，则代表隐藏刘海
+        int off = realSize - shotSize;
+        if (off == statusBarHeigth || off == statusBarHeigth + 1 || off == statusBarHeigth - 1) {
+            return true;
+        }
+        // 如果是横屏游戏
+        if (BTDeviceSDK.getInstance().getOrientation() == Configuration.ORIENTATION_LANDSCAPE) {
+            // 如果设备是IQOO，设备分辨率-截图分辨率=73，则代表隐藏刘海
+            String model = Build.MODEL;
+            if (model.contains("V1824") &amp;&amp; realSize - shotSize == 73) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int getNotchWidth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        int statusBarHeight = BTDeviceSDK.getInstance().getStatusBarHeight();
+        return statusBarHeight * 100 / 32;
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        int statusBarHeight = BTDeviceSDK.getInstance().getStatusBarHeight();
+        return statusBarHeight * 27 / 32;
+    }
+
+    @Override
+    public int getBottomDangerHeigth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        int statusBarHeight = BTDeviceSDK.getInstance().getStatusBarHeight();
+        return statusBarHeight * 24 / 32;
+    };
+
+}
+</code></pre>
+<ol start="5">
+<li>OPPO屏幕适配
+官方文档: <a href="https://open.oppomobile.com/wiki/doc#id=10159">https://open.oppomobile.com/wiki/doc#id=10159</a>
+</li>
+</ol>
+<pre><code>import android.content.pm.PackageManager;
+import android.graphics.Point;
+
+class BTOppo extends BTDeviceFather {
+
+    @Override
+    public boolean isSupportNotch() {
+        PackageManager pm = BTDeviceSDK.getInstance().getActivity().getPackageManager();
+        return pm.hasSystemFeature("com.oppo.feature.screen.heteromorphism");
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        Point pReal = BTDeviceSDK.getInstance().getResolution();
+        Point pShot = DeviceTools.getScreenShotSize();
+        int realSize = pReal.x &gt; pReal.y ? pReal.x : pReal.y;
+        int shotSize = pShot.x &gt; pShot.y ? pShot.x : pShot.y;
+        int statusBarHeigth = BTDeviceSDK.getInstance().getStatusBarHeight();
+        // 设备分辨率-截图分辨率=状态栏，则代表隐藏刘海
+        int off = realSize - shotSize;
+        if (off == statusBarHeigth || off == statusBarHeigth + 1 || off == statusBarHeigth - 1) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public int getNotchWidth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        return 324;
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        return 80;
+    }
+
+}
+</code></pre>
+<ol start="6">
+<li>OnePlus屏幕适配
+官方文档: 貌似没有官方API文档</li>
+</ol>
+<pre><code>import android.graphics.Point;
+import android.os.Build;
+
+class BTOnePlus extends BTDeviceFather {
+
+    @Override
+    public boolean isSupportNotch() {
+        String model = Build.MODEL;
+        if (model.contains("ONEPLUS A6000") || model.contains("ONEPLUS A6010") || model.contains("GM1900")) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        Point pReal = BTDeviceSDK.getInstance().getResolution();
+        Point pShot = DeviceTools.getScreenShotSize();
+        int realSize = pReal.x &gt; pReal.y ? pReal.x : pReal.y;
+        int shotSize = pShot.x &gt; pShot.y ? pShot.x : pShot.y;
+        int statusBarHeigth = BTDeviceSDK.getInstance().getStatusBarHeight();
+        // 设备分辨率-截图分辨率=状态栏，则代表隐藏刘海
+        int off = realSize - shotSize;
+        if (off == statusBarHeigth || off == statusBarHeigth + 1 || off == statusBarHeigth - 1) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        return BTDeviceSDK.getInstance().getStatusBarHeight();
+    }
+
+}
+</code></pre>
+<ol start="7">
+<li>联想 (摩托罗拉) 屏幕适配
+官方文档: <a href="http://open.lenovo.com/sdk/%E5%85%A8%E9%9D%A2%E5%B1%8F%E9%80%82%E9%85%8D%E6%8C%87%E5%8D%97/">http://open.lenovo.com/sdk/%E5%85%A8%E9%9D%A2%E5%B1%8F%E9%80%82%E9%85%8D%E6%8C%87%E5%8D%97/</a>
+</li>
+</ol>
+<pre><code>import android.graphics.Point;
+
+class BTLenovo extends BTDeviceFather {
+
+    @Override
+    public boolean isSupportNotch() {
+        boolean result = false;
+        int resourceId = BTDeviceSDK.getInstance().getActivity().getResources().getIdentifier("config_screen_has_notch", "bool", "android");
+        if (resourceId &gt; 0) {
+            result = BTDeviceSDK.getInstance().getActivity().getResources().getBoolean(resourceId);
+        }
+        return result;
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        Point pReal = BTDeviceSDK.getInstance().getResolution();
+        Point pShot = DeviceTools.getScreenShotSize();
+        int realSize = pReal.x &gt; pReal.y ? pReal.x : pReal.y;
+        int shotSize = pShot.x &gt; pShot.y ? pShot.x : pShot.y;
+        int statusBarHeigth = BTDeviceSDK.getInstance().getStatusBarHeight();
+        // 设备分辨率-截图分辨率=状态栏，则代表隐藏刘海
+        int off = realSize - shotSize;
+        if (off == statusBarHeigth || off == statusBarHeigth + 1 || off == statusBarHeigth - 1) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+
+        int result = 0;
+        int resourceId = BTDeviceSDK.getInstance().getActivity().getResources().getIdentifier("notch_h", "integer", "android");
+        if (resourceId &gt; 0) {
+            result = BTDeviceSDK.getInstance().getActivity().getResources().getInteger(resourceId);
+        }
+        return result;
+    }
+
+    @Override
+    public int getNotchWidth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+
+        int result = 0;
+        int resourceId = BTDeviceSDK.getInstance().getActivity().getResources().getIdentifier("notch_w", "integer", "android");
+        if (resourceId &gt; 0) {
+            result = BTDeviceSDK.getInstance().getActivity().getResources().getInteger(resourceId);
+        }
+        return result;
+    }
+
+}
+</code></pre>
+<p>8.魅族屏幕适配</p>
+<pre><code>import java.lang.reflect.Field;
+
+import android.provider.Settings;
+import android.util.Log;
+
+import com.platform.device.feature.BTDeviceFather;
+
+public class BTMeizu extends BTDeviceFather {
+
+    private String TAG = "BTMeizu";
+
+    @Override
+    public boolean isSupportNotch() {
+        boolean fringeDevice = false;
+        try {
+            Class&lt;?&gt; clazz = Class.forName("flyme.config.FlymeFeature");
+            Field field = clazz.getDeclaredField("IS_FRINGE_DEVICE");
+            fringeDevice = (Boolean) field.get(null);
+        } catch (Exception e) {
+            Log.e(TAG, "isSupportNotch:\n" + e.toString());
+        }
+        return fringeDevice;
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        // 判断隐藏刘海开关(默认关)
+        return Settings.Global.getInt(BTDeviceSDK.getInstance().getActivity().getContentResolver(), "mz_fringe_hide", 0) == 1;
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+
+        // 获取刘海高度（51px）
+        int fringeHeight = 0;
+        int fhid = BTDeviceSDK.getInstance().getActivity().getResources().getIdentifier("fringe_height", "dimen", "android");
+        if (fhid &gt; 0) {
+            fringeHeight = BTDeviceSDK.getInstance().getActivity().getResources().getDimensionPixelSize(fhid);
+        }
+        return fringeHeight;
+    }
+
+}
+</code></pre>
+<p>9.努比亚屏幕适配</p>
+<pre><code>import android.graphics.Point;
+import android.os.Build;
+
+class BTNubia extends BTDeviceFather {
+
+    @Override
+    public boolean isSupportNotch() {
+        String model = Build.MODEL;
+        if (model.contains("NX606J")) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        Point pReal = BTDeviceSDK.getInstance().getResolution();
+        Point pShot = DeviceTools.getScreenShotSize();
+        int realSize = pReal.x &gt; pReal.y ? pReal.x : pReal.y;
+        int shotSize = pShot.x &gt; pShot.y ? pShot.x : pShot.y;
+        int statusBarHeigth = BTDeviceSDK.getInstance().getStatusBarHeight();
+        // 设备分辨率-截图分辨率=状态栏，则代表隐藏刘海
+        int off = realSize - shotSize;
+        if (off == statusBarHeigth || off == statusBarHeigth + 1 || off == statusBarHeigth - 1) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+        return BTDeviceSDK.getInstance().getStatusBarHeight();
+    }
+
+}
+</code></pre>
+<p>10.三星屏幕适配
+官方文档: <a href="http://support-cn.samsung.com/App/DeveloperChina/home/list?parentid=11&amp;newsid=72">http://support-cn.samsung.com/App/DeveloperChina/home/list?parentid=11&amp;newsid=72</a></p>
+<pre><code>package com.platform.device.feature;
+
+import android.content.res.Resources;
+import android.graphics.Point;
+import android.text.TextUtils;
+import android.util.Log;
+
+class BTSamsung extends BTDeviceFather {
+
+    private String TAG = "BTSamsung";
+
+    @Override
+    public boolean isSupportNotch() {
+        try {
+            final Resources res = BTDeviceSDK.getInstance().getActivity().getResources();
+            final int resId = res.getIdentifier("config_mainBuiltInDisplayCutout", "string", "android");
+            final String spec = resId &gt; 0 ? res.getString(resId) : null;
+            return spec != null &amp;&amp; !TextUtils.isEmpty(spec);
+        } catch (Exception e) {
+            Log.e(TAG, "getFeature Exception");
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isHideNotch() {
+        int orientation = BTDeviceSDK.getInstance().getOrientation();
+        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+            int top = BTDisplayCutout.getSafeInsetTop();
+            int bottom = BTDisplayCutout.getSafeInsetBottom();
+            return top &gt; 0 || bottom &gt; 0 ? false : true;
+        }
+
+        int left = BTDisplayCutout.getSafeInsetLeft();
+        int right = BTDisplayCutout.getSafeInsetRight();
+        return left &gt; 0 || right &gt; 0 ? false : true;
+    }
+
+    @Override
+    public int getNotchHeigth() {
+        if (!isSupportNotch() || isHideNotch()) {
+            return 0;
+        }
+
+        int orientation = BTDeviceSDK.getInstance().getOrientation();
+        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+            int top = BTDisplayCutout.getSafeInsetTop();
+            int bottom = BTDisplayCutout.getSafeInsetBottom();
+            return top &gt; bottom ? top : bottom;
+        }
+
+        int left = BTDisplayCutout.getSafeInsetLeft();
+        int right = BTDisplayCutout.getSafeInsetRight();
+        return left &gt; right ? left : right;
+    }
+
+}
+</code></pre>
+<ol start="11">
+<li>设置沉浸式布局
+设置沉浸式布局，可在一定程度上避免获取的屏幕宽高错误的问题。
+比如修改了刘海开关、导航条显示方式(三键模式、手势模式等)，都会影响获取的屏幕宽高大小。</li>
+</ol>
+<pre><code>@SuppressLint("InlinedApi")
+private void setSystemUiVisibility() {
+    int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_FULLSCREEN;
+    if (Build.VERSION.SDK_INT &gt;= 19) {
+        uiOptions |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+    }
+    mActivity.getWindow().getDecorView().setSystemUiVisibility(uiOptions);
+}
+</code></pre>
+<ol start="12">
+<li>解决Android9.0+不全屏问题
+在安卓9.0系统的小米刘海屏手机中，当用户打开刘海开关时，但耳朵区并不进行绘制。
+解决此问题在生命周期onCreate中调用以下方法即可。</li>
+</ol>
+<pre><code>@SuppressLint("InlinedApi")
+private void initDisplayCutoutMode() {
+    if ((Build.VERSION.SDK_INT &gt;= 28)) {
+        WindowManager.LayoutParams lp = mActivity.getWindow().getAttributes();
+        lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        mActivity.getWindow().setAttributes(lp);
+        mActivity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        mActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+    }
+}
+</code></pre>
+<ol start="13">
+<li>动态屏幕适配
+当用户在使用APP的过程中，动态修改了刘海屏的显示或隐藏，那么我们就要在runtime下进行及时调整避让区域等，以解决UI显示异常等现象。</li>
+</ol>
+<pre><code>private void initObserver() {
+    ViewTreeObserver vto = this.mActivity.getWindow().getDecorView().getViewTreeObserver();
+    vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+
+    @Override
+    public void onGlobalLayout() {
+        // 这里处理新视图的逻辑
+    });
+}
+</code></pre></div><div class='title'>Home</div><div class='content'><p>Welcome to the Gitee wiki!</p></div><div class='title'>node.js调用系统命令，输出结果中文会乱码（比如执行svn的一些命令）</div><div class='content'><p>简体中文windows命令行，都使用的是CP936(近似于gb2312)编码，nodejs以utf8识别是会出问题。
+可以这样处理：</p>
+<pre><code>var child_process = require('child_process');
+var iconv = require('iconv-lite');
+var encoding = 'cp936';
+var binaryEncoding = 'binary';
+var decodeExecData = data =&gt; iconv.decode(Buffer.from(data, binaryEncoding), encoding);
+
+child_process.exec('svn log', { encoding: binaryEncoding }, function(err, stdout, stderr){
+    console.log(decodeExecData(stdout), decodeExecData(stderr));
+});
+</code></pre>
+<p>先用binary来存储输出的文本，再用iconv来以cp936解析。</p></div><div class='title'>Android</div><div class='content'></div><div class='title'>厂商标识符及判断</div><div class='content'><p>1、判断手机厂商</p>
+<pre><code>public static boolean isMobileByType(String anotherString){
+     return Build.MANUFACTURER.equalsIgnoreCase(anotherString);
+}
+</code></pre>
+<p>2、手机厂商标识</p>
+<pre><code>    /**
+     * 手机品牌
+     */
+    // 小米
+    public static final String PHONE_XIAOMI = "xiaomi";
+    // 华为
+    public static final String PHONE_HUAWEI1 = "Huawei";
+    // 华为
+    public static final String PHONE_HUAWEI2 = "HUAWEI";
+    // 华为
+    public static final String PHONE_HUAWEI3 = "HONOR";
+    // 魅族
+    public static final String PHONE_MEIZU = "Meizu";
+    // 索尼
+    public static final String PHONE_SONY = "sony";
+    // 三星
+    public static final String PHONE_SAMSUNG = "samsung";
+    // LG
+    public static final String PHONE_LG = "lg";
+    // HTC
+    public static final String PHONE_HTC = "htc";
+    // NOVA
+    public static final String PHONE_NOVA = "nova";
+    // OPPO
+    public static final String PHONE_OPPO = "OPPO";
+    // 乐视
+    public static final String PHONE_LeMobile = "LeMobile";
+    // 联想
+    public static final String PHONE_LENOVO = "lenovo";
+</code></pre></div><div class='title'>判断是否是模拟器环境</div><div class='content'><pre><code>/**
+     * 是否是模拟器
+     * @param context
+     * @return
+     */
+    public static boolean isSimulator(Context context) {
+        String url = "tel:" + "123456";
+        Intent intent = new Intent();
+        intent.setData(Uri.parse(url));
+        intent.setAction(Intent.ACTION_DIAL);
+        // 是否可以处理跳转到拨号的 Intent
+        boolean canCallPhone = intent.resolveActivity(context.getPackageManager()) != null;
+        return Build.FINGERPRINT.startsWith("generic") || Build.FINGERPRINT.toLowerCase()
+                .contains("vbox") || Build.FINGERPRINT.toLowerCase()
+                .contains("test-keys") || Build.MODEL.contains("google_sdk") || Build.MODEL.contains("Emulator") || Build.MODEL
+                .contains("MuMu") || Build.MODEL.contains("virtual") || Build.SERIAL.equalsIgnoreCase("android") || Build.MANUFACTURER
+                .contains("Genymotion") || (Build.BRAND.startsWith("generic") &amp;&amp; Build.DEVICE.startsWith("generic")) || "google_sdk"
+                .equals(Build.PRODUCT) || ((TelephonyManager) context
+                .getSystemService(Context.TELEPHONY_SERVICE)).getNetworkOperatorName()
+                .toLowerCase()
+                .equals("android") || !canCallPhone;
+    }
+</code></pre></div><div class='title'>获取手机设备号</div><div class='content'><pre><code>/**
+     * 获取手机设备号
+     *
+     * @return
+     */
+    public static String getSystemDeviceId(Activity context) {
+        TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        String deviceId = null;
+        if(context.checkCallingPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED){
+            if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.O){
+                deviceId = tm.getImei() + "-" + tm.getMeid();
+            } else {
+                deviceId = tm.getDeviceId();
+            }
+        }
+        if (deviceId == null || "".equals(deviceId)){
+            deviceId = getUUID();
+        }
+        return deviceId;
+    }
+
+    /**
+     * 得到全局唯一UUID
+     */
+    private static String uuid;
+    public static String getUUID() {
+        uuid = LocalStorage.getString("uuid");
+        if ("".equals(uuid)) {
+            uuid = UUID.randomUUID().toString();
+            LocalStorage.putString("uuid", uuid);
+        }
+        return uuid;
+    }
+</code></pre></div><div class='title'>JSON对象转换</div><div class='content'><p>依赖库： <strong>implementation 'com.google.code.gson:gson:2.8.6'</strong></p>
+<pre><code>public class JsonUtil {
+
+    /**
+     * 对象转换成json字符串
+     * @param obj
+     * @return
+     */
+    public static String toJson(Object obj){
+        Gson gson = new Gson();
+        return gson.toJson(obj);
+    }
+
+    /**
+     * json字符串转成对象
+     * 如类型为 TmpDataParams.java =&gt; JsonUtil.fromJson("json_string", TmpDataParams.class)
+     * @param json
+     * @param type
+     * @return
+     */
+    public static &lt;T&gt; T fromJson(String json, Type type) {
+        Gson gson = new Gson();
+        return gson.fromJson(json, type);
+    }
+
+}
+</code></pre></div><div class='title'>Gradle配置</div><div class='content'><pre><code>apply plugin: 'com.android.application'
+//apply from: 'version.gradle'// 自动修改版本号脚本
+
+android {
+    compileSdkVersion rootProject.ext.compileSdk
+    buildToolsVersion rootProject.ext.buildTools
+    useLibrary 'org.apache.http.legacy'
+    defaultConfig {
+        applicationId "org.egret.android_template"
+        minSdkVersion rootProject.ext.minSdk
+        targetSdkVersion rootProject.ext.targetSdk
+        versionCode 1
+        versionName "1.0"
+        flavorDimensions "versionCode"
+        ndk {
+            abiFilters "armeabi-v7a",'arm64-v8a', "x86", "x86_64" //根据游戏需要保留架构库种类
+        }
+
+//        // 过滤，对于国际化支持只打包中文资源，和"xxhdpi"
+//        // 注意如果在这里指定了dpi，则flavor中不能指定的dpi与这里必须一致否则会报错
+//        resConfigs "zh-rCN", "xhdpi"
+    }
+
+    signingConfigs {
+
+        debug {
+
+            //别名，因为一个密码库可以供多个项目使用，所以别名不同，最后的签名也是不同的。
+            keyAlias "${rootProject.ext.storeFileName}"
+
+            //别名的私钥密码
+            keyPassword '123456'
+
+            //签名秘钥库文件的存放的位置，这里可以使用相对路径
+            storeFile file("../keystore/${rootProject.ext.storeFileName}.keystore")
+
+            //秘钥库的访问密码
+            storePassword '123456'
+        }
+
+        release {
+            keyAlias "${rootProject.ext.storeFileName}"
+            keyPassword '123456'
+            storeFile file("../keystore/${rootProject.ext.storeFileName}.keystore")
+            storePassword '123456'
+        }
+    }
+
+    // 在Android Studio中默认下，link检查报错会导致编译中断
+    packagingOptions {
+        // Android studio默认会有so文件进行压缩优化，加入以下配置可以不压缩so
+        //(此处之所以指定是某些sdk压缩可能有意想不到的问题)
+        //doNotStrip "**/*.so"
+    }
+
+    lintOptions {
+
+        //关闭编译release版本的lint检查
+        checkReleaseBuilds false
+
+        //关闭link检查报错中断编译选项
+        abortOnError false
+    }
+
+    buildTypes {
+
+        debug {
+
+            // 可以调试
+            debuggable true
+
+            // jni可调试
+            jniDebuggable true
+
+            // 渲染脚本可调试
+            renderscriptDebuggable true
+
+            // minifyEnabled表示代码是否可以压缩，裁剪优化，需要配合其他的工具一起使用，如proguard
+            // 添加代码混淆，注意添加混淆时，必须将minifyEnabled 置为true，否则混淆不生效
+            // 同样如果没有使用代码混淆必须置为false，否则编译失败
+            minifyEnabled false
+
+            // 压缩对齐，提高运行时的效率，也可以使用setZipAlignEnabled(true)
+            zipAlignEnabled false
+
+            // 移除无用的resource文件
+            shrinkResources false
+
+            // 指定签名文件为release签名，注意非debug，如果不指定签名，则打出来的包不会签名
+            signingConfig signingConfigs.debug
+            // 添加 applicationId 的后缀
+//            applicationIdSuffix = 'debug'
+        }
+
+
+        release {
+
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+            minifyEnabled false
+            zipAlignEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.release
+
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+//    // 条件增加NDK
+//    if (rootProject.ext.flavorName.indexOf(flavorName) != -1) {
+//        externalNativeBuild {
+//            ndkBuild {
+//                path 'src/flavorName/jni/Android.mk'
+//            }
+//        }
+//    }
+
+    sourceSets {
+        main {
+            assets.srcDirs = ['../assets']
+            jniLibs.srcDirs = ['libs']
+        }
+        dev {
+            java.srcDirs = ['src/dev/java', 'src/dev/java/']
+            res.srcDirs =['src/dev/res', 'src/dev/res/']
+        }
+        guanfang {
+            res.srcDirs = ['src/guanfang/res', 'src/guanfang/res/']
+            java.srcDirs =['src/guanfang/java', 'src/guanfang/java/']
+        }
+        guanfangtest {
+            res.srcDirs = ['src/guanfang/res', 'src/guanfang/res/']
+            java.srcDirs =['src/guanfang/java', 'src/guanfang/java/']
+            manifest {
+                srcFile 'src/guanfang/AndroidManifest.xml'
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    // 根据不同的需要，最终生成不同的apk
+    productFlavors {
+        // 请参照现有格式配置，
+        // 当新增加一个类型后，
+        // 需要在 ./app/version.gradle文件中allFlavors添加名称,
+        // 需要在 ./build.gradle文件中ext里添加相应变量
+
+        dev {
+            applicationId "com.abc.dev"
+            versionCode rootProject.ext.devVersionCode
+            versionName rootProject.ext.devVersionName
+        }
+        guanfang {
+            applicationId "com.abc.guanfang"
+            versionCode rootProject.ext.guanfangVersionCode
+            versionName rootProject.ext.guanfangVersionName
+        }
+        guanfangtest {
+            applicationId "com.abc.guanfang"
+            versionCode rootProject.ext.guanfangVersionCode
+            versionName rootProject.ext.guanfangVersionName
+        }
+
+        String hotSign = "name_sign.txt";
+        String signKey = "";
+        File hotFile = file(hotSign);
+        if (hotFile.exists()){
+            hotFile.eachLine {line -&gt;
+                signKey = line
+                println(line + ":: -&gt; " + line)
+            }
+        }
+
+        //variant的属性参考 https://blog.csdn.net/beiyus/article/details/51191949
+        applicationVariants.all { variant -&gt;
+            variant.outputs.all { output -&gt;
+                outputFileName = outputFile.name.replace(".apk", "-${variant.versionCode}-${releaseTime()}${signKey}.apk")
+                if (outputFileName != null &amp;&amp; outputFileName.endsWith('.apk')) {
+                    if (variant.buildType.name.equals("release")) {
+                        File tmpFolder = file("obb")
+                        if (!tmpFolder.exists()) {
+                            tmpFolder.mkdirs();
+                        }
+                        String tmpFileName = "obb/${variant.flavorName}.txt";
+                        File tmpFile = file(tmpFileName);
+                        if (!tmpFile.exists()) {
+                            tmpFile.createNewFile();
+                        }
+                        String versionCode = "${variant.versionCode}"
+                        String applicationId = variant.applicationId;
+                        String str = "main.${versionCode}.${applicationId}.obb::${versionCode}::${applicationId}"
+                        tmpFile.withWriter('UTF-8') { writer -&gt;
+                            list.each {
+                                writer.write(str);
+                            }
+                        }
+                        variant.getPackageApplicationProvider().get().outputScope.apkDatas.forEach {
+                            apkData -&gt; apkData.outputFileName = outputFileName
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+// 编译语法报错信息（过期语法警告等）
+//allprojects {
+//    gradle.projectsEvaluated {
+//        tasks.withType(JavaCompile) {
+//            options.compilerArgs &lt;&lt; "-Xlint:unchecked" &lt;&lt; "-Xlint:deprecation"
+//        }
+//    }
+
+dependencies {
+    // base -------------------------------------------------------------------------- start
+    implementation(name: 'egret', ext: 'aar')
+    implementation 'androidx.appcompat:appcompat:1.0.0'
+    // extend sdk Dynamic permission application
+    implementation 'com.tbruyelle.rxpermissions:rxpermissions:0.9.3@aar'
+    implementation 'io.reactivex:rxjava:1.1.3'
+    //其中latest.release指代最新Bugly SDK版本号，也可以指定明确的版本号，例如2.1.9
+    implementation 'com.tencent.bugly:crashreport:latest.release'
+    //其中latest.release指代最新Bugly NDK版本号，也可以指定明确的版本号，例如3.0
+    implementation 'com.tencent.bugly:nativecrashreport:latest.release'
+
+    // 由于yisou sdk中已包含此库，所以yisou包不需要再引入此库
+    devImplementation 'com.google.code.gson:gson:2.8.6'
+
+    guanfangImplementation 'com.google.code.gson:gson:2.8.6'
+    guanfangtestImplementation 'com.google.code.gson:gson:2.8.6'
+}
+</code></pre>
+<p>发布时自动修改app版本号</p>
+<pre><code>import java.util.regex.Matcher
+import java.util.regex.Pattern
+
+android {
+    int versionMajor = 1
+    int versionMinor = 0
+    int versionBuild = 0
+
+    // 所有 productFlavors 的名称
+    String[] allFlavors = ['dev', 'guanfang']
+
+    Gradle gradle = getGradle()
+    String taskRequests = gradle.getStartParameter().getTaskRequests().toString()
+    // 需要引入GoogleService的productFlavor名称
+    Pattern patternGoogleService = Pattern.compile("assemble(onestore|monawa)")
+    Matcher matcherGoogleService = patternGoogleService.matcher(taskRequests.toLowerCase())
+    rootProject.ext.isDependenceGoogleService = matcherGoogleService.find()
+    println("taskRequests=====&gt;" + taskRequests)
+    println("是否需要引入GoogleService服务插件=&gt;" + rootProject.ext.isDependenceGoogleService)
+
+    Pattern pattern = Pattern.compile("assemble(\w+)(Release|Debug)")
+    Matcher matcher = pattern.matcher(gradle.getStartParameter().getTaskRequests().toString())
+    if (matcher.find()) {
+        String param1 = matcher.group(1)
+        String param2 = matcher.group(2)
+        String flavorName = param1.toLowerCase();
+        File versionPropsFile = file("version.properties")
+        rootProject.ext.flavorName = flavorName;
+        rootProject.ext.storeFileName = flavorName;
+        if (flavorName.indexOf("test") != -1){
+            rootProject.ext.storeFileName = flavorName.replace("test", "");
+        }
+        if("Release".equals(param2)){
+            String releaseTaskName = "assemble${param1}${param2}"
+            println("taskName =&gt; " + releaseTaskName + "    修改版本号")
+            if (!versionPropsFile.exists()){
+                versionPropsFile.createNewFile();
+            }
+            Properties versionProps = new Properties()
+            versionProps.load(new FileInputStream(versionPropsFile))
+
+            boolean isNeedSave= false
+            for (def type in allFlavors){
+                String upperType = type.toUpperCase()
+                String lowerType = type.toLowerCase()
+                String versionMajorKey = upperType +'_VERSION_MAJOR'
+                String versionMinorKey = upperType +'_VERSION_MINOR'
+                String versionBuildKey = upperType +'_VERSION_BUILD'
+                String versionCodeKey = upperType +'_VERSION_CODE'
+                String versionNameKey = upperType +'_VERSION_NAME'
+                String varVersionCode = lowerType + "VersionCode"
+                String varVersionName = lowerType + "VersionName"
+
+                versionMajor = versionProps.getProperty(versionMajorKey, '1').toInteger()
+                versionMinor = versionProps.getProperty(versionMinorKey, '0').toInteger()
+                versionBuild = versionProps.getProperty(versionBuildKey, '0').toInteger()
+
+                boolean isChanged = !flavorName || type.equals(flavorName)
+                if (isChanged){
+                    versionBuild = versionBuild + 1
+                    if (versionBuild &gt; 999){
+                        versionMinor = versionMinor + 1
+                        versionBuild = 1
+                        if (versionMinor&gt; 9){
+                            versionMajor = versionMajor + 1;
+                            versionMinor = 0
+                        }
+                    }
+                    isNeedSave = true
+                }
+
+                rootProject.ext[varVersionCode] = versionMajor * 10000 + versionMinor * 1000 + versionBuild
+                rootProject.ext[varVersionName] = "${versionMajor}.${versionMinor}.${versionBuild}"
+
+                if (isChanged){
+                    versionProps.setProperty(versionMajorKey, versionMajor.toString())
+                    versionProps.setProperty(versionMinorKey, versionMinor.toString())
+                    versionProps.setProperty(versionBuildKey, versionBuild.toString())
+                    versionProps.setProperty(versionCodeKey, rootProject.ext[varVersionCode].toString())
+                    versionProps.setProperty(versionNameKey, rootProject.ext[varVersionName])
+
+                    println(flavorName + " --------------------- start")
+                    println("VersionCode =&gt; " + rootProject.ext[varVersionCode].toString())
+                    println("VersionCName =&gt; " + rootProject.ext[varVersionName])
+                    println(flavorName + " --------------------- end")
+                }
+            }
+            if (isNeedSave){
+                versionProps.store(versionPropsFile.newWriter(), null)
+            }
+        }
+    } else {
+        println "NO MATCH FOUND"
+    }
+
+}
+</code></pre>
+<p>NDK使用方式</p>
+<ol>
+<li>新建jni目录</li>
+<li>创建Android.mk</li>
+<li>创建c文件 如: public_keys.c</li>
+</ol>
+<p>Android.mk内容样式</p>
+<pre><code>LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE    := public_keys
+LOCAL_SRC_FILES := public_keys.c
+APP_ABI := all
+APP_STL := c++_shared
+
+include $(BUILD_SHARED_LIBRARY)
+</code></pre>
+<p>c文件，public_keys.c</p>
+<pre><code>#include &lt;jni.h&gt;
+
+JNIEXPORT jstring JNICALL
+ Java_paackage_name_ClassName_functionName(JNIEnv *env, jobject instance)
+ {
+ return (*env)-&gt;NewStringUTF(env, "MIGfMA");
+}
+</code></pre>
+<p>在public_keys.c文件中定义的包中的ClassName类里定义</p>
+<pre><code>public static native String functionName();
+</code></pre>
+<p>即可以通过 functionName() 获取到public_keys.c文件里定义的值</p></div><div class='title'>Egret项目压缩包解压示例</div><div class='content'><p>回调接口定义</p>
+<pre><code>public interface ICallback {
+    public interface IPermission{
+        void callback(Boolean aBoolean, final String... permissions);
+    }
+
+    public interface IObb{
+        void callback();
+    }
+
+    public interface IObbProgress{
+        void callback(int current, int total);
+    }
+}
+</code></pre>
+<p>解压到preload目录【示例代码中使用obb，其实这个就是一个zip格式压缩包】</p>
+<pre><code>import android.Manifest;
+import android.app.Activity;
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
+
+public class ObbUtil {
+
+    public static String preloadPath;
+
+    private static Activity mActivity;
+    private static ICallback.IObb mCallback;
+    private static ICallback.IObbProgress mObbProgress;
+    private static String mUrlString;
+    private static int totalCount = 5000;
+    private static int currentCount = 0;
+
+    private static String _outputAssetsFolder;
+    public static String getOutputAssetsFolder(Context context) {
+        if (_outputAssetsFolder == null) {
+            String root = preloadPath;
+            if (root == null) {
+                root = rootPath(context);
+                if (root != null){
+                    _outputAssetsFolder = root + "/preloadAssets/";
+                }
+            } else _outputAssetsFolder = root;
+        }
+        return _outputAssetsFolder;
+    }
+
+    private static String rootPath(Context context){
+        if (context != null){
+            File rootFile = context.getExternalFilesDir("");
+            if (rootFile == null){
+                rootFile = context.getFilesDir();
+            } else {
+                return rootFile.getParent();
+            }
+            if (rootFile == null){
+                rootFile = context.getCacheDir();
+            }
+            if (rootFile == null){
+                rootFile = context.getExternalCacheDir();
+            }
+            if (rootFile != null){
+                return rootFile.getAbsolutePath();
+            }
+        }
+        return "";
+    }
+
+    private static String getFileDirByUrl(String urlString /*"http://game.com/game/index.html"*/) {
+        int lastSlash = urlString.lastIndexOf('/');
+        String server = urlString.substring(0, lastSlash + 1);
+        return server.replaceFirst("://", "/").replace(":", "#0A");
+    }
+
+    public static void unObbZip(Activity activity,
+                                String urlString,
+                                final ICallback.IObb callback,
+                                final ICallback.IObbProgress progress) {
+        mActivity = activity;
+        mCallback = callback;
+        mUrlString = urlString;
+        mObbProgress = progress;
+
+        String assetsFolder = getOutputAssetsFolder(mActivity);
+        boolean isExist = "".equals(assetsFolder);
+        if (mActivity == null || !isExist){
+            mObbProgress.callback(totalCount, totalCount);
+            mCallback.callback();
+        } else {
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    String obbFilePath = getFilePath(mActivity);
+                    if (obbFilePath != null) {// 首先需要获取到obb包路径
+                        File obbFile = new File(obbFilePath);
+                        if (obbFile.exists()) {// obb包必须是存在的
+                            try {
+                                ZipFile tmp = new ZipFile(obbFilePath);
+                                totalCount = tmp.size();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                totalCount = 5000;
+                            }
+                            currentCount = 0;
+
+                            File filesDirFile = mActivity.getExternalFilesDir("");
+                            String rootDirPath = filesDirFile != null ? filesDirFile.getAbsolutePath() : rootPath(mActivity);
+                            String obbFileName = getFileName(mActivity);
+                            String outputFolder = getOutputAssetsFolder(mActivity) + getFileDirByUrl(mUrlString);
+                            String checkSignPath = rootDirPath + "/obb_history/" + obbFileName;
+                            if (!checkTargetExist(checkSignPath, false)) {
+                                try {//没有解压过的
+                                    // 先请求检查且请求权限
+                                    String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                            Manifest.permission.READ_EXTERNAL_STORAGE};
+                                    if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.M) {
+                                        int check = mActivity.checkSelfPermission(permissions[0]);
+                                        if (check != PackageManager.PERMISSION_GRANTED) {
+                                            mActivity.requestPermissions(permissions, 111);
+                                        }
+                                    }
+
+                                    // 解压到预加载目录
+                                    unZip(obbFile, outputFolder);
+
+                                    // 解压成功后创建解压标记
+                                    checkTargetExist(checkSignPath, true);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                    mObbProgress.callback(totalCount, totalCount);
+                    mCallback.callback();
+                }
+            };
+            new Thread(runnable).start();
+        }
+    }
+
+    private static void unZip(File zipFile, String outPathString) throws IOException {
+        checkTargetExist(outPathString, true);
+        ZipInputStream inZip = new ZipInputStream(new FileInputStream(zipFile));
+        ZipEntry zipEntry;
+        String szName;
+        while ((zipEntry = inZip.getNextEntry()) != null) {
+            szName = zipEntry.getName();
+            if (zipEntry.isDirectory()) {
+                szName = szName.substring(0, szName.length() - 1);
+                checkTargetExist(outPathString + szName, true);
+            } else {
+                File file = new File(outPathString + szName);
+                checkTargetExist(file.getParent(), true);
+                if (!file.exists()){
+                    file.createNewFile();
+                    FileOutputStream out = new FileOutputStream(file);
+                    int len;
+                    byte[] buffer = new byte[1024];
+                    while ((len = inZip.read(buffer)) != -1) {
+                        out.write(buffer, 0, len);
+                        out.flush();
+                    }
+                    out.close();
+                }
+                currentCount++;
+                if (mObbProgress != null &amp;&amp;
+                        (currentCount % 10 == 0 || currentCount &gt;= totalCount)){
+                    if (currentCount &gt; totalCount) currentCount = totalCount;
+                    mObbProgress.callback(currentCount, totalCount);
+                }
+            }
+        }
+        inZip.close();
+    }
+
+    private static String getFilePath(Context context){
+        String fileName = getFileName(context);
+        if (fileName != null){
+            return context.getObbDir() + File.separator + fileName;
+        }
+        return null;
+    }
+
+    private static String getFileName(Context context){
+        try {
+            long versionCode ;
+            String packageName = context.getPackageName();
+            PackageInfo packageInfo = context.getApplicationContext().getPackageManager().getPackageInfo(packageName, 0);
+            if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.P){
+                versionCode = packageInfo.getLongVersionCode();
+            } else {
+                versionCode = packageInfo.versionCode;
+            }
+            return "main." + versionCode + "." + packageName + ".obb";
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static boolean checkTargetExist(String targetFilePath, boolean isAutoCreate) {
+        if (targetFilePath == null) {
+            return false;
+        }
+        File file = new File(targetFilePath);
+        if (!file.exists()) {
+            if (isAutoCreate) {
+                file.mkdirs();
+            }
+            return false;
+        }
+        return true;
+    }
+    
+    
+}
+
+</code></pre></div><div class='title'>读写本地缓存</div><div class='content'><pre><code>
+import android.content.Context;
+import android.content.SharedPreferences;
+
+import java.util.HashMap;
+
+public class LocalStorage {
+
+    private Context context;
+    private HashMap&lt;String, SharedPreferences&gt; dictionary;
+    private SharedPreferences preference(String name){
+        if (name == null) name = "default_preference_name";
+        if (dictionary == null) dictionary = new HashMap&lt;String, SharedPreferences&gt;();
+        SharedPreferences pref = dictionary.get(name);
+        if (pref == null){
+            pref = context.getSharedPreferences(name, Context.MODE_PRIVATE);
+            dictionary.put(name, pref);
+        }
+        return pref;
+    }
+
+    private static LocalStorage instance;
+    public static void init(Context context){
+        if (instance == null){
+            instance = new LocalStorage();
+            instance.context = context;
+        }
+    }
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    public static void putInt(String key, int value, String name) {
+        instance.preference(name).edit().putInt(key, value).apply();
+    }
+    public static void putInt(String key, int value) {
+        instance.preference(null).edit().putInt(key, value).apply();
+    }
+    public static int getInt(String key, int defValue) {
+        return instance.preference(null).getInt(key, defValue);
+    }
+    public static int getInt(String key, int defValue, String name) {
+        return instance.preference(name).getInt(key, defValue);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    public static void putString(String key, String value) {
+        instance.preference(null).edit().putString(key, value).apply();
+    }
+    public static void putString(String key, String value, String name) {
+        instance.preference(name).edit().putString(key, value).apply();
+    }
+
+    public static String getString(String key) {
+        return instance.preference(null).getString(key, "");
+    }
+    public static String getString(String key, String defValue) {
+        return instance.preference(null).getString(key, defValue);
+    }
+    public static String getString(String key, String defValue, String name) {
+        return instance.preference(name).getString(key, defValue);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    public static void putBoolean(String key, boolean value) {
+        instance.preference(null).edit().putBoolean(key, value).apply();
+    }
+    public static void putBoolean(String key, boolean value, String name) {
+        instance.preference(name).edit().putBoolean(key, value).apply();
+    }
+
+    public static boolean getBoolean(String key) {
+        return instance.preference(null).getBoolean(key, false);
+    }
+    public static boolean getBoolean(String key, boolean defValue) {
+        return instance.preference(null).getBoolean(key, defValue);
+    }
+    public static boolean getBoolean(String key, boolean defValue, String name) {
+        return instance.preference(name).getBoolean(key, defValue);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    public static void putLong(String key, long value) {
+        instance.preference(null).edit().putLong(key, value).apply();
+    }
+    public static void putLong(String key, long value, String name) {
+        instance.preference(name).edit().putLong(key, value).apply();
+    }
+
+    public static long getLong(String key) {
+        return instance.preference(null).getLong(key, 1);
+    }
+    public static long getLong(String key, long defValue) {
+        return instance.preference(null).getLong(key, defValue);
+    }
+    public static long getLong(String key, long defValue, String name) {
+        return instance.preference(name).getLong(key, defValue);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////
+    public static void putFloat(String key, float value) {
+        instance.preference(null).edit().putFloat(key, value).apply();
+    }
+    public static void putFloat(String key, float value, String name) {
+        instance.preference(name).edit().putFloat(key, value).apply();
+    }
+
+    public static float getFloat(String key) {
+        return instance.preference(null).getFloat(key, 1.0f);
+    }
+    public static float getFloat(String key, float defValue) {
+        return instance.preference(null).getFloat(key, defValue);
+    }
+    public static float getFloat(String key, float defValue, String name) {
+        return instance.preference(name).getFloat(key, defValue);
+    }
+}
+
+</code></pre></div><div class='title'>调用系统默认分享功能</div><div class='content'><pre><code>import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Build;
+import android.os.StrictMode;
+import android.text.TextUtils;
+import android.util.Base64;
+import android.util.Log;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 分享文件、图片、文本
+ * Created by 她叫我小渝 on 2016/10/15.
+ */
+
+public class ShareUtil {
+
+    /**
+     * 分享文本
+     *
+     * @param context
+     * @param path
+     */
+    public static void shareUrl(Activity context, String path) {
+        if (TextUtils.isEmpty(path)) {
+            return;
+        }
+
+        checkFileUriExposure();
+
+        Intent it = new Intent(Intent.ACTION_SEND);
+        it.putExtra(Intent.EXTRA_TEXT, path);
+        it.setType("text/plain");
+        context.startActivity(Intent.createChooser(it, "分享APP"));
+    }
+
+    public static void shareByBase64Data(Activity context, String base64Data){
+        String path = stringToBitmap(base64Data);
+        if (path != null){
+            shareImage(context, path);
+        } else {
+            ToastUtils.showToast(context, "No read or write permissions");
+        }
+    }
+
+    /**
+     * 分享文件
+     *
+     * @param context
+     * @param path
+     */
+    public static void shareFile(Activity context, String path) {
+        if (TextUtils.isEmpty(path)) {
+            return;
+        }
+
+        checkFileUriExposure();
+
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(new File(path)));  //传输图片或者文件 采用流的方式
+        intent.setType("*/*");   //分享文件
+        context.startActivity(Intent.createChooser(intent, "分享"));
+    }
+
+    /**
+     * 分享单张图片
+     *
+     * @param context
+     * @param path
+     */
+    public static void shareImage(Activity context, String path) {
+        shareImage(context, path, null, null, null);
+    }
+
+    /**
+     * 分享多张图片
+     *
+     * @param context
+     * @param pathList
+     */
+    public static void shareImage(Activity context, List&lt;String&gt; pathList) {
+        shareImage(context, null, pathList, null, null);
+    }
+
+    /**
+     * 分享到微信好友，单图
+     */
+    public static void shareImageToWeChat(Activity context, String path) {
+        //判断是否安装微信，如果没有安装微信 又没有判断就直达微信分享是会挂掉的
+        if (!isAppInstall(context, "com.tencent.mm")) {
+            ToastUtils.showToast(context, "您还没有安装微信");
+            return;
+        }
+        shareImage(context, path, null, "com.tencent.mm", "com.tencent.mm.ui.tools.ShareImgUI");
+    }
+
+    /**
+     * 分享到微信好友，多图
+     */
+    public static void shareImageToWeChat(final Activity context, List&lt;String&gt; pathList) {
+        //判断是否安装微信，如果没有安装微信 又没有判断就直达微信分享是会挂掉的
+        if (!isAppInstall(context, "com.tencent.mm")) {
+            ToastUtils.showToast(context, "您还没有安装微信");
+            return;
+        }
+        shareImage(context, null, pathList, "com.tencent.mm", "com.tencent.mm.ui.tools.ShareImgUI");
+    }
+
+    /**
+     * 分享到微信朋友圈，单图
+     */
+    public static void shareImageToWeChatFriend(Activity context, String path) {
+        if (!isAppInstall(context, "com.tencent.mm")) {
+            ToastUtils.showToast(context, "您还没有安装微信");
+            return;
+        }
+        shareImage(context, path, null, "com.tencent.mm", "com.tencent.mm.ui.tools.ShareToTimeLineUI");
+    }
+
+    /**
+     * 分享到微信朋友圈，多图
+     */
+    public static void shareImageToWeChatFriend(Activity context, List&lt;String&gt; pathList) {
+        if (!isAppInstall(context, "com.tencent.mm")) {
+            ToastUtils.showToast(context, "您还没有安装微信");
+            return;
+        }
+        shareImage(context, null, pathList, "com.tencent.mm", "com.tencent.mm.ui.tools.ShareToTimeLineUI");
+    }
+
+    /**
+     * 分享图片给QQ好友，单图
+     */
+    public static void shareImageToQQ(Activity context, String path) {
+        if (!isAppInstall(context, "com.tencent.mobileqq")) {
+            ToastUtils.showToast(context, "您还没有安装QQ");
+            return;
+        }
+        shareImage(context, path, null, "com.tencent.mobileqq", "com.tencent.mobileqq.activity.JumpActivity");
+    }
+
+
+    /**
+     * 分享图片给QQ好友，多图
+     */
+    public static void shareImageToQQ(Activity context, List&lt;String&gt; pathList) {
+        if (!isAppInstall(context, "com.tencent.mobileqq")) {
+            ToastUtils.showToast(context, "您还没有安装QQ");
+            return;
+        }
+        shareImage(context, null, pathList, "com.tencent.mobileqq", "com.tencent.mobileqq.activity.JumpActivity");
+    }
+
+
+    /**
+     * 分享图片到QQ空间，单图
+     */
+    public static void shareImageToQZone(Activity context, String path) {
+        if (!isAppInstall(context, "com.qzone")) {
+            ToastUtils.showToast(context, "您还没有安装QQ空间");
+            return;
+        }
+        shareImage(context, path, null, "com.qzone", "com.qzonex.module.operation.ui.QZonePublishMoodActivity");
+    }
+
+
+    /**
+     * 分享图片到QQ空间，多图
+     */
+    public static void shareImageToQZone(Activity context, List&lt;String&gt; pathList) {
+        if (!isAppInstall(context, "com.qzone")) {
+            ToastUtils.showToast(context, "您还没有安装QQ空间");
+            return;
+        }
+        shareImage(context, null, pathList, "com.qzone", "com.qzonex.module.operation.ui.QZonePublishMoodActivity");
+    }
+
+    /**
+     * 分享图片到微博，单图
+     */
+    public static void shareImageToWeibo(Activity context, String path) {
+        if (!isAppInstall(context, "com.sina.weibo")) {
+            ToastUtils.showToast(context, "您还没有安装新浪微博");
+            return;
+        }
+        shareImage(context, path, null, "com.sina.weibo", "com.sina.weibo.EditActivity");
+    }
+
+
+    /**
+     * 分享图片到微博，多图
+     */
+    public static void shareImageToWeibo(Activity context, List&lt;String&gt; pathList) {
+        if (!isAppInstall(context, "com.sina.weibo")) {
+            ToastUtils.showToast(context, "您还没有安装新浪微博");
+            return;
+        }
+        shareImage(context, null, pathList, "com.sina.weibo", "com.sina.weibo.EditActivity");
+    }
+
+    /**
+     * 检测手机是否安装某个应用
+     *
+     * @param context
+     * @param appPackageName 应用包名
+     * @return true-安装，false-未安装
+     */
+    public static boolean isAppInstall(Activity context, String appPackageName) {
+        PackageManager packageManager = context.getPackageManager();// 获取packagemanager
+        List&lt;PackageInfo&gt; pinfo = packageManager.getInstalledPackages(0);// 获取所有已安装程序的包信息
+        if (pinfo != null) {
+            for (int i = 0; i &lt; pinfo.size(); i++) {
+                String pn = pinfo.get(i).packageName;
+                if (appPackageName.equals(pn)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 分享前必须执行本代码，主要用于兼容SDK18以上的系统
+     */
+    private static void checkFileUriExposure() {
+        if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+            StrictMode.setVmPolicy(builder.build());
+            builder.detectFileUriExposure();
+        }
+    }
+
+    /**
+     * @Description: 将图片字节流转换成图片
+     * @param base64Data 从Egret传过来的screenshot字节流
+     * @return 保存后的图片url
+     * */
+    public static String stringToBitmap(String base64Data) {
+        String TAG = "MainActivity_share";
+        String filePath = "";
+        try {
+            //获取内部存储状态
+            if(!PathUtil.canReadWirtePermission){
+                Log.e(TAG, "No read and write permissions");
+                return null;
+            }
+
+            Bitmap bitmap = null;
+            String rootPath = PathUtil.imagesRoot;
+
+            if (rootPath == "" || rootPath == null){
+                return null;
+            }
+            File parent = new File(rootPath);
+            if (!parent.exists()) {
+                boolean created = parent.mkdirs();  //创建所有父文件夹
+                if (!created) {
+                    Log.e(TAG, "files create failed");
+                }
+            }
+
+            long startTime = System.currentTimeMillis();
+
+            // 创建文件到本地
+            Date date = new Date();
+            String imageName ="screenshot" + date.getTime() + ".png";
+            filePath = rootPath + File.separator + imageName;
+            File file = new File(rootPath, imageName);
+            file.createNewFile();
+            Log.d(TAG, "创建分享截图文件成功 -&gt;" + filePath);
+
+            Log.d(TAG, "===== share create file =&gt; " + (System.currentTimeMillis() - startTime));
+
+            // 创建截图数据
+            String[] raw = base64Data.split(";base64,");
+            byte[] bitmapArray = Base64.decode(raw[raw.length == 2 ? 1 : 0], Base64.DEFAULT);
+            // 向本地文件写入数据
+            FileOutputStream outputStream = new FileOutputStream(file);
+            outputStream.write(bitmapArray);
+            outputStream.flush();
+            outputStream.close();
+            Log.d(TAG, "===== Native 保存耗时 =&gt; " + (System.currentTimeMillis() - startTime));
+            Log.d(TAG, "分享截图数据保存成功到制定文件 -&gt;" + filePath);
+
+        } catch (SecurityException e){
+            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
+        } catch (IOException e){
+            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
+        }
+        return filePath;
+    }
+
+    /**
+     * @param context  上下文
+     * @param path     不为空的时候，表示分享单张图片，会检验图片文件是否存在
+     * @param pathList 不为空的时候表示分享多张图片，会检验每一张图片是否存在
+     * @param pkg      分享到的指定app的包名
+     * @param cls      分享到的页面（微博不需要指定页面）
+     */
+    private static void shareImage(Activity context, String path, List&lt;String&gt; pathList, String pkg, String cls) {
+        if (path == null &amp;&amp; pathList == null) {
+            ToastUtils.showToast(context, "找不到您要分享的图片文件");
+            return;
+        }
+
+        checkFileUriExposure();
+
+        try {
+            if (path != null) {
+                //单张图片
+                if (!isFile(path)) {
+                    ToastUtils.showToast(context, "图片不存在，请检查后重试");
+                    return;
+                }
+
+                Intent intent = new Intent();
+                if (pkg != null &amp;&amp; cls != null) {
+                    //指定分享到的app
+                    if (pkg.equals("com.sina.weibo")) {
+                        //微博分享的需要特殊处理
+                        intent.setPackage(pkg);
+                    } else {
+                        ComponentName comp = new ComponentName(pkg, cls);
+                        intent.setComponent(comp);
+                    }
+                }
+                intent.setAction(Intent.ACTION_SEND);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(new File(path)));
+                intent.setType("image/*");   //分享文件
+                context.startActivity(Intent.createChooser(intent, "分享"));
+            } else {
+                //多张图片
+                ArrayList&lt;Uri&gt; uriList = new ArrayList&lt;&gt;();
+                for (int i = 0; i &lt; pathList.size(); i++) {
+                    if (!isFile(pathList.get(i))) {
+                        ToastUtils.showToast(context, "第" + (i + 1) + "张图片不存在，请检查后重试");
+                        return;
+                    }
+                    uriList.add(Uri.fromFile(new File(pathList.get(i))));
+                }
+
+                Intent intent = new Intent();
+
+                if (pkg != null &amp;&amp; cls != null) {
+                    //指定分享到的app
+                    if (pkg.equals("com.sina.weibo")) {
+                        //微博分享的需要特殊处理
+                        intent.setPackage(pkg);
+                    } else {
+                        ComponentName comp = new ComponentName(pkg, cls);
+                        intent.setComponent(comp);
+                    }
+                }
+                intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+                intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uriList);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.setType("image/*");
+                context.startActivity(Intent.createChooser(intent, "分享"));
+            }
+
+        } catch (Exception e) {
+            ToastUtils.showToast(context, "分享失败，未知错误");
+        }
+    }
+
+    private static boolean isFile(String path){
+        if (path == null) return false;
+        File file = new File(path);
+        if (file.exists()){
+            return !file.isDirectory();
+        }
+        return false;
+    }
+
+}
+</code></pre></div><div class='title'>Bugly自定义错误提交</div><div class='content'><pre><code>    protected void crashReportToBugly(String stackErrorMessage) {
+        if (useCrashReport == false || "".equals(stackErrorMessage)) {
+            return;
+        }
+        try {
+            String prex = gameURL.replace("index.html", "");
+            stackErrorMessage = stackErrorMessage.replaceAll(prex, "");
+            CrashReport.postCatchedException(new Error(stackErrorMessage));
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+        Log.e(TAG, stackErrorMessage);
+    }
+</code></pre></div><div class='title'>绘制刘海区域AndroidManifest.xml配置</div><div class='content'><pre><code>
+        &lt;!-- 允许绘制到小米刘海屏机型的刘海区域 --&gt;
+        &lt;meta-data
+            android:name="notch.config"
+            android:value="portrait" /&gt;
+        &lt;!-- 允许绘制到华为刘海屏机型的刘海区域 --&gt;
+        &lt;meta-data
+            android:name="android.notch_support"
+            android:value="true" /&gt;
+        &lt;!-- 允许绘制到oppo、vivo刘海屏机型的刘海区域 --&gt;
+        &lt;meta-data
+            android:name="android.max_aspect"
+            android:value="2.4" /&gt;
+</code></pre></div><div class='title'>调用震动</div><div class='content'><pre><code>    Vibrator vibrator = null;
+    /** 震动 */
+    protected void vibrate(final Activity activity, long milliseconds) {
+        if (vibrator == null){
+            vibrator = (Vibrator) activity.getSystemService(Service.VIBRATOR_SERVICE);
+        }
+        if (vibrator == null || milliseconds &lt;= 0){
+            return;
+        }
+        vibrator.vibrate(milliseconds);
+    }
+</code></pre></div><div class='title'>动态获取权限</div><div class='content'><p>引入第三方库</p>
+<pre><code>    // extend sdk Dynamic permission application
+    implementation 'com.tbruyelle.rxpermissions:rxpermissions:0.9.3@aar'
+    implementation 'io.reactivex:rxjava:1.1.3'这里输入代码
+</code></pre>
+<pre><code>public interface ICallback {
+    public interface IPermission{
+        void callback(Boolean aBoolean, final String... permissions);
+    }
+}
+</code></pre>
+<pre><code>protected void getPermissionsRequest(final ICallback.IPermission callback, final String... permissions) {
+        rxPermissions.request(permissions).subscribe(new Action1&lt;Boolean&gt;() {
+            @Override
+            public void call(Boolean aBoolean) {
+                if (aBoolean == false) {
+                    // 存在拒绝权限
+                    } else {
+                        aBoolean = true;
+                    }
+                }
+                callback.callback(aBoolean, permissions);
+                String str = Arrays.toString(permissions);
+                Log.d(TAG, str);
+            }
+        });
+    }
+</code></pre></div><div class='title'>谷歌支付</div><div class='content'><p>使用代码示例，此代码示例只做一次性消费商品购买，订阅商品需要增加逻辑</p>
+<p>初始化</p>
+<pre><code>    private GooglePay googlePay;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        …… other code
+
+        googlePay = new GooglePay.Builder().setContext(mActivity).setCallback(
+                new IGooglePay.IPayCallback() {
+                    @Override
+                    public void onSuccess(GooglePaySuccessParams paySuccessParams) {
+                        //付款成功
+                    }
+                    @Override
+                    public void onPending() {
+                        //付款中
+                    }
+                    @Override
+                    public void onFailed() {
+                        //付款失败
+                    }
+                    @Override
+                    public void onCancel() {
+                        //付款取消
+                    }
+                    @Override
+                    public void onError(String msg) {
+                        //付款错误
+                    }
+                }).build();
+
+        // 添加到生命周期观察者列表中 -- 此处不添加需要在各个生命周期调用相应方法
+        this.getLifecycle().addObserver(googlePay);
+    }
+</code></pre>
+<p>网络变化---从无网络到有网络时调用</p>
+<pre><code>googlePay.checkBillingClientConnection();
+</code></pre>
+<p>支付调用</p>
+<pre><code>googlePay.buyGoods(productId);
+</code></pre>
+<h1>
+<a id="代码详细" class="anchor" href="#%E4%BB%A3%E7%A0%81%E8%AF%A6%E7%BB%86"></a>======
+代码详细</h1>
+<p>引入库</p>
+<pre><code>mplementation 'com.android.billingclient:billing:2.1.0'
+</code></pre>
+<p>支付回调接口</p>
+<pre><code>public class IGooglePay {
+    public interface IPayCallback{
+        void onSuccess(GooglePaySuccessParams paySuccessParams);
+        void onPending();
+        void onFailed();
+        void onCancel();
+        /** 仅通知一些错误信息， 不做状态判断 */
+        void onError(String msg);
+    }
+}
+</code></pre>
+<p>支付成功后的回传数据结构</p>
+<pre><code>public class GooglePaySuccessParams {
+    public String developerPayload;
+    public String orderId;
+    public String originalJson;
+    public String packageName;
+    public String purchaseState;
+    public String purchaseTime;
+    public String purchaseToken;
+    public String signature;
+    public String sku;
+}
+</code></pre>
+<p>支付逻辑</p>
+<pre><code>import android.app.Activity;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleObserver;
+import androidx.lifecycle.OnLifecycleEvent;
+
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.BillingClientStateListener;
+import com.android.billingclient.api.BillingFlowParams;
+import com.android.billingclient.api.BillingResult;
+import com.android.billingclient.api.ConsumeParams;
+import com.android.billingclient.api.ConsumeResponseListener;
+import com.android.billingclient.api.Purchase;
+import com.android.billingclient.api.PurchasesUpdatedListener;
+import com.android.billingclient.api.SkuDetails;
+import com.android.billingclient.api.SkuDetailsParams;
+import com.android.billingclient.api.SkuDetailsResponseListener;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
+
+public class GooglePay implements   LifecycleObserver,
+                                    PurchasesUpdatedListener,
+                                    BillingClientStateListener,
+                                    SkuDetailsResponseListener,
+                                    ConsumeResponseListener {
+
+    private Activity mActivity;
+    private BillingClient billingClient;
+    private IGooglePay.IPayCallback callback;
+    private boolean isConnected = false;
+    private boolean isConnecting = false;
+    private SkuDetails skuDetail = null;
+    private String willBuyGoodsId = "";
+    private String TAG = "MainActivityGooglePay";
+    /**
+     * 重连billing
+     */
+    private final int BILLING_RECONNECT = 10000;
+
+    Handler mHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what) {
+                case BILLING_RECONNECT:
+                    checkBillingClientConnection();
+                    break;
+            }
+        }
+    };
+
+    private Timer reconnectBillingClientTaskTimer;
+
+    TimerTask reconnectBillingClientTask = new TimerTask() {
+        @Override
+        public void run() {
+            Message message = new Message();
+            message.what = BILLING_RECONNECT;
+            mHandler.sendMessage(message);
+        }
+    };
+
+    private boolean isTimerStarting = false;
+    private boolean isPaused = false;
+
+    private void startReconnectBillingClientTaskTimer() {
+        if (isTimerStarting) return;
+        if (mActivity == null) return;
+        reconnectBillingClientTaskTimer = new Timer();
+        reconnectBillingClientTaskTimer.schedule(reconnectBillingClientTask, 15000, 15000);
+        isTimerStarting = true;
+    }
+
+    private void stopReconnectBillingClientTaskTimer() {
+        if (!isTimerStarting) return;
+        if (reconnectBillingClientTaskTimer == null) {
+            reconnectBillingClientTaskTimer.cancel();
+            reconnectBillingClientTaskTimer = null;
+        }
+        isTimerStarting = false;
+    }
+
+    @Override
+    public void onBillingSetupFinished(BillingResult billingResult) {
+        int responseCode = billingResult.getResponseCode();
+        isConnected = responseCode == BillingClient.BillingResponseCode.OK;
+        isConnecting = false;
+        if (!isConnected &amp;&amp; !isPaused){
+            Log.e(TAG, "finished: google pay billingClient cannot Connection code =&gt; " + responseCode);
+        }
+    }
+
+    @Override
+    public void onBillingServiceDisconnected() {
+        isConnected = false;
+        isConnecting = false;
+        if (!isPaused){
+            Log.e(TAG, "google pay billingClient cannot Connection");
+        }
+    }
+
+    @Override
+    public void onSkuDetailsResponse(BillingResult billingResult, List&lt;SkuDetails&gt; skuDetailsList) {
+        int code = billingResult.getResponseCode();
+        String msg = "getSkuList[" + willBuyGoodsId + "]" + billingResult.getDebugMessage();
+        if (code == BillingClient.BillingResponseCode.OK) {
+            msg = "Unable to obtain details of specified merchandise[" + willBuyGoodsId + "]";
+            if (skuDetailsList != null &amp;&amp; skuDetailsList.size() &gt; 0) {
+                skuDetail = skuDetailsList.get(0);
+                realPay();
+                msg = null;
+            }
+        }
+        if (msg != null) {
+            callback.onError(msg);
+            callback.onFailed();
+        }
+    }
+
+    @Override
+    public void onPurchasesUpdated(BillingResult billingResult, @Nullable List&lt;Purchase&gt; purchases) {
+        String msg = billingResult.getDebugMessage();
+        int responseCode = billingResult.getResponseCode();
+        if (responseCode == BillingClient.BillingResponseCode.OK) {
+            if (purchases != null) {
+                for (Purchase purchase : purchases) {
+                    handlePurchase(purchase);
+                }
+                msg = null;
+            }
+        } else if (responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
+            // Handle an error caused by a user cancelling the purchase flow.
+            callback.onCancel();
+        }
+        if (msg != null) {
+            callback.onError(msg);
+            Log.e(TAG, msg);
+        }
+    }
+
+    @Override
+    public void onConsumeResponse(BillingResult billingResult, String s) {
+
+    }
+
+    public void initialize(Activity activity, IGooglePay.IPayCallback callback){
+        this.mActivity = activity;
+        this.callback = callback;
+        this.checkBillingClientConnection();
+        startReconnectBillingClientTaskTimer();
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+    public void onPause(){
+        isPaused = true;
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    public void onResume(){
+//        // 检查 BillingClient.FeatureType 类型的待处理订单状态
+//        if (isConnected &amp;&amp; billingClient != null &amp;&amp; billingClient.isReady()){
+//            Purchase.PurchasesResult purchasesResult = billingClient.queryPurchases(BillingClient.SkuType.INAPP);
+//            List&lt;Purchase&gt; list = purchasesResult.getPurchasesList();
+//            if (list != null &amp;&amp; list.size() &gt; 0){
+//                if (callback != null){
+//                    callback.onError("[待处理订单]There is a pending order, there may be a payment logic problem");
+//                }
+//            }
+//        }
+
+        startReconnectBillingClientTaskTimer();
+        isPaused = false;
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+    public void onDestroy(){
+        stopReconnectBillingClientTaskTimer();
+        if (billingClient != null &amp;&amp; billingClient.isReady()){
+            billingClient.endConnection();
+            billingClient = null;
+        }
+    }
+    /**
+     * 在网络从断开切到连接时调用
+     */
+    public void checkBillingClientConnection(){
+        if (billingClient == null) {
+            billingClient = BillingClient.newBuilder(mActivity)
+                                .enablePendingPurchases()
+                                .setListener(this)
+                                .build();
+        }
+        // isConnecting在调用startConnection()收标记为true，
+        // billingClient有返回结果后标记为false
+        if (isConnecting == false &amp;&amp; (isConnected == false || !billingClient.isReady())) {
+            isConnecting = true;
+            billingClient.startConnection(this);
+        }
+    }
+
+    /** 根据谷歌后台设置的商品id查询商品详情 */
+    public void buyGoods(final String goodsId) {
+        if (isConnected == false) {
+            String msg = "Current region does not support Google payments. not connected";
+            Log.e(TAG, msg);
+            callback.onError(msg);
+            callback.onFailed();
+            return;
+        }
+        willBuyGoodsId = goodsId;
+        skuDetail = null;
+
+        List&lt;String&gt; skuList = new ArrayList&lt;&gt;();
+        skuList.add(goodsId);
+        SkuDetailsParams.Builder params = SkuDetailsParams.newBuilder();
+        params.setSkusList(skuList).setType(BillingClient.SkuType.INAPP);
+        billingClient.querySkuDetailsAsync(params.build(), this);
+    }
+
+    private void realPay(){
+        String msg = null;
+        if (isConnected) {
+            BillingFlowParams flowParams = BillingFlowParams.newBuilder()
+                    .setSkuDetails(skuDetail)
+                    .build();
+            BillingResult billingResult = billingClient.launchBillingFlow(mActivity, flowParams);
+            int responseCode = billingResult.getResponseCode();
+            if (responseCode != 0) {
+                msg = responseCode + ":Current region does not support Google payments";
+            }
+        } else {
+            msg = "Current region does not support Google payments. not connected";
+        }
+        if (msg != null) {
+            Log.e(TAG, msg);
+            callback.onError(msg);
+            callback.onFailed();
+        }
+    }
+
+    private void handlePurchase(Purchase purchase) {
+        int purchaseState = purchase.getPurchaseState();
+        if (purchaseState == Purchase.PurchaseState.PURCHASED) {
+            // Grant entitlement to the user.
+            // Acknowledge the purchase if it hasn't already been acknowledged.
+            if (!purchase.isAcknowledged()) {//purchase.isAcknowledged()该方法可以指示购买交易是否已得到确认
+                ConsumeParams consumeParams = ConsumeParams.newBuilder()
+                                .setPurchaseToken(purchase.getPurchaseToken())
+                                .build();
+                //注意这里通知方式分3种类型（消耗型、订阅型、奖励型），本文是消耗性产品的通知方式，其它方式请看官方文档
+                billingClient.consumeAsync(consumeParams, this);
+            }
+
+            GooglePaySuccessParams paySuccessParams = new GooglePaySuccessParams();
+            paySuccessParams.developerPayload = purchase.getDeveloperPayload();
+            paySuccessParams.orderId = purchase.getOrderId();
+            paySuccessParams.originalJson = purchase.getOriginalJson();
+            paySuccessParams.packageName = purchase.getPackageName();
+            paySuccessParams.purchaseState = purchase.getPurchaseState() + "";
+            paySuccessParams.purchaseTime = purchase.getPurchaseTime() + "";
+            paySuccessParams.purchaseToken = purchase.getPurchaseToken();
+            paySuccessParams.signature = purchase.getSignature();
+            paySuccessParams.sku = purchase.getSku();
+//            //通知服务端 --- 此处根据实际情况通知服务端
+//            postGooglePay(DeveloperPayload, OrderId, OriginalJson, PackageName,
+//                    PurchaseState, PurchaseTime, PurchaseToken, Signature, Sku);
+            if (callback != null){
+                callback.onSuccess(paySuccessParams);
+            }
+        } else if (purchaseState == Purchase.PurchaseState.PENDING){
+            if (callback != null){
+                callback.onPending();
+            }
+        } else if (callback != null){
+            callback.onFailed();
+        }
+    }
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+/// GooglePay 构造器 ////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+    public static class Builder{
+
+        private IGooglePay.IPayCallback mCallback;
+        private Activity mContext;
+
+        public Builder() { }
+
+        public GooglePay.Builder setCallback(IGooglePay.IPayCallback callback){
+            this.mCallback = callback;
+            return this;
+        }
+
+        public GooglePay.Builder setContext(Activity context){
+            this.mContext = context;
+            return this;
+        }
+
+        public GooglePay build(){
+            if (mContext == null) {
+                throw new NullPointerException("need set context");
+            } else if (mContext == null){
+                throw new NullPointerException("need set callback");
+            } else {
+                GooglePay googlePay = new GooglePay();
+                googlePay.initialize(mContext, mCallback);
+                return googlePay;
+            }
+        }
+    }
+
+}
+
+</code></pre></div><div class='title'>iOS</div><div class='content'></div><div class='title'>HTTP GET加载json</div><div class='content'><pre><code>    NSDate* datenow = [NSDate date];//现在时间,你可以输出来看下是什么格式
+    NSString* timeSp = [NSString stringWithFormat:@"%ld", (long)[datenow timeIntervalSince1970]*1000];
+    NSString* fileUrl = [NSString stringWithFormat:@"%@app_build_num.json?v=%@", urlRoot, timeSp];
+    NSURL* url = [NSURL URLWithString:fileUrl];//获取网络资源
+    NSURLRequest* request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringCacheData timeoutInterval:0.1f];//timeoutInterval超时时间[单位：秒]，默认是60秒
+    NSHTTPURLResponse* response = nil;
+    NSError* error = nil;
+    //网络连接转换为数据类型
+    NSData* data = [NSURLConnection sendSynchronousRequest:request returningResponse:&amp;response error:&amp;error];
+    if (response){
+        //用NSJSONSerialization把JSON数据解析成UI类型
+        id jsonObject = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingAllowFragments error:&amp;error];
+        NSDictionary *remoteVersionObject = (NSDictionary *)jsonObject;
+        if (remoteVersionObject){
+            NSString* buildNumStr = [remoteVersionObject valueForKey:@"version"];
+        }
+    }
+</code></pre></div><div class='title'>本地缓存读写</div><div class='content'><p>获取默认的用户对象</p>
+<pre><code>    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+</code></pre>
+<p>读取指定键的缓存值</p>
+<pre><code>    NSString* cacheBuildNum = [userDefaults objectForKey:@"cacheBuildNum"];
+</code></pre>
+<p>写入指定键的缓存值</p>
+<pre><code>    [userDefaults setObject:buildNumStr forKey:@"cacheBuildNum"];
+</code></pre></div><div class='title'>JSON字符串转对象</div><div class='content'><pre><code>#pragma mark -  获取json对象
+- (id)getJsonData: (NSString*)message{
+    NSError *error = nil;
+    NSData* jsonStr = [message dataUsingEncoding:NSUTF8StringEncoding];
+    id result = [NSJSONSerialization JSONObjectWithData:jsonStr options:NSJSONReadingMutableLeaves error:&amp;error];
+    if (error){
+        return nil;
+    }
+    return result;
+}
+</code></pre></div><div class='title'>获取应用构建时的版本号</div><div class='content'><pre><code>#pragma mark - 当前应用构建时的 版本号
+- (int)curAppBuildNum{
+    NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+    // 当前应用软件版本  比如：1.0.1
+    NSString *appCurVersion = [infoDictionary objectForKey:@"CFBundleShortVersionString"];
+    NSLog(@"当前应用软件版本:%@",appCurVersion);
+    // 当前应用版本号码   int类型
+    NSString *appCurVersionNum = [infoDictionary objectForKey:@"CFBundleVersion"];
+    NSLog(@"当前应用版本号码：%@",appCurVersionNum);
+    return [appCurVersionNum intValue];
+}
+</code></pre></div><div class='title'>Bugly：上传主动捕获的错误信息到Bugly</div><div class='content'><pre><code>#pragma mark - 将捕获的js错误上报到bugly
+- (void)reportExceptionByBugly: (NSString*) errMsg{
+    if ([self useCrashReport]){
+        errMsg = [errMsg stringByReplacingOccurrencesOfString:urlRoot withString:@""];
+        NSException* exception = [NSException exceptionWithName:@"@onJSError" reason:errMsg userInfo:nil];
+        [Bugly reportException: exception];
+    }
+}
+</code></pre></div><div class='title'>获取设备信息</div><div class='content'><pre><code>float total = [thiz getTotalRam];
+UIDevice* device = [[UIDevice alloc] init];
+NSString* name = device.name;       //获取设备所有者的名称
+NSString* model = device.model;      //获取设备的类别
+NSString* systemVersion = device.systemVersion;//获取当前系统的版本
+NSString* ram = [NSString stringWithFormat:@"%f", total];
+NSString* language = [thiz getLanguage];
+NSString* identifier = [[[UIDevice currentDevice] identifierForVendor] UUIDString]; //获取设备的唯一标示符
+</code></pre>
+<pre><code>#pragma mark - 获取当前设备系统语言
+- (NSString*)getLanguage {
+    NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+    NSArray * allLanguages = [defaults objectForKey:@"AppleLanguages"];
+    NSString * preferredLang = [allLanguages objectAtIndex:0];
+    return preferredLang;
+}
+</code></pre>
+<pre><code>
+#pragma mark - 获取当前设备内存
+- (long long)getTotalRam {
+    return [NSProcessInfo processInfo].physicalMemory;
+}
+</code></pre></div><div class='title'>手动添加全屏背景图</div><div class='content'><pre><code>#pragma mark - 打开loading界面
+- (void)showLoadingView {
+    CGRect rect = _viewController.view.frame;
+    float wp = rect.size.width / 640;
+    float hp = rect.size.height/ 1136;
+    float scale = wp &gt; hp ? hp : wp;
+    float w = 640 * scale;
+    float h = 1136 * scale;
+    float x = (rect.size.width - w) / 2;
+    float y = (rect.size.height- h) / 2;
+    
+    _loadingView = [[UIView alloc]initWithFrame:rect];
+    [_viewController.view addSubview:_loadingView];
+    [_viewController.view bringSubviewToFront:_loadingView];
+    
+    _imageViewBackColor = [[UIImageView alloc]initWithFrame:rect];
+    [_imageViewBackColor setBackgroundColor: [self loadingBackgroundColor]];
+    [_loadingView addSubview:_imageViewBackColor];
+    [_loadingView bringSubviewToFront:_imageViewBackColor];
+    
+    _imageView = [[UIImageView alloc] initWithFrame:CGRectMake(x, y, w, h)];
+    [_imageView setImage:[UIImage imageNamed:[self loadingImageName]]];
+    [_loadingView addSubview:_imageView];
+    [_loadingView bringSubviewToFront:_imageView];
+}
+
+
+#pragma mark - 关闭loading界面
+- (void)hideLoadingView {
+    
+    __block UIView* loadingView = _loadingView;
+    __block UIImageView* imageView = _imageView;
+    __block UIImageView* imageViewBackColor = _imageViewBackColor;
+    [UIView animateWithDuration:1 animations:^{
+        loadingView.alpha = 0;
+    } completion: ^(BOOL finished){
+        if (finished){
+            [imageView removeFromSuperview];
+            [imageViewBackColor removeFromSuperview];
+            [loadingView removeFromSuperview];
+        }
+    }];
+    
+}
+
+
+- (UIColor*)loadingBackgroundColor{
+    return [UIColor whiteColor];
+}
+</code></pre></div><div class='title'>使用Base64数据调用分享</div><div class='content'><pre><code>#pragma mark - 分享
+- (void)showShare: (NSString*)base64Data {
+    //Base64字符串转UIImage图片：
+    NSData *decodedImageData = [[NSData alloc]initWithBase64EncodedString:base64Data options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    UIImage *decodedImage = [UIImage imageWithData:decodedImageData];
+    NSArray* items = [[NSArray alloc] initWithObjects:decodedImage, nil];
+    UIActivityViewController *activityVC = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
+    if (@available(iOS 11.0, *)) {//UIActivityTypeMarkupAsPDF是在iOS 11.0 之后才有的
+        activityVC.excludedActivityTypes = @[UIActivityTypeMessage,UIActivityTypeMail,UIActivityTypeOpenInIBooks,UIActivityTypeMarkupAsPDF];
+    } else if (@available(iOS 9.0, *)) {//UIActivityTypeOpenInIBooks是在iOS 9.0 之后才有的
+        activityVC.excludedActivityTypes = @[UIActivityTypeMessage,UIActivityTypeMail,UIActivityTypeOpenInIBooks];
+    }else {
+        activityVC.excludedActivityTypes = @[UIActivityTypeMessage,UIActivityTypeMail];
+    }
+    activityVC.completionWithItemsHandler = ^(UIActivityType  _Nullable activityType, BOOL completed, NSArray * _Nullable returnedItems, NSError * _Nullable activityError) {
+        if (completed) {
+            NSLog(@"&gt;&gt;&gt;&gt;&gt;success");
+        }else {
+            NSLog(@"&gt;&gt;&gt;&gt;&gt;faild");
+        }
+    };
+    [_viewController presentViewController:activityVC animated:YES completion:nil];
+}
+
+
+</code></pre></div><div class='title'>TypeScript</div><div class='content'></div><div class='title'>@装饰定义方式</div><div class='content'><pre><code>
+    /**
+     * 使用注入的方法
+     * 添加关注
+     * 关注为事件处理回调，只会在awake时，添加到事件监听列表
+     * 在sleep时，从事件监听列表中移除
+     * @param {string} type                         关注的事件
+     * @param {(e?: Event) =&gt; void} handler          回调函数
+     * @param {boolean} [triggerOnStage=false]      添加到舞台的时候，会立即执行一次，&lt;font color="#f00"&gt;注意，处理回调必须能支持不传event的情况&lt;/font&gt;
+     * @param {number} [priority=0]                 优先级，默认为0
+     */
+    export function inject(eventType: string | number, triggerOnStage?: boolean, priority?: number) {
+        return function (target: any, key: string, value: any) {
+            let ins = &lt;InjectInterface&gt;{};
+            let _injects = target._interests;
+            if (!_injects) target._interests = _injects = {};
+            ins.handler = value.value;
+            ins.priority = priority || 0;
+            ins.trigger = triggerOnStage;
+            _injects[eventType] = ins;
+        }
+    }
+
+
+</code></pre></div><div class='title'>上传包时遇到的问题汇总</div><div class='content'><p><a href="https://www.jianshu.com/p/3f55e39f2fdf">参考-&gt;简书</a></p>
+<p>第一、ERROR ITMS-90035: "Invalid Signature. A sealed resource is missing or invalid.</p>
+<p><img src="https://images.gitee.com/uploads/images/2020/0825/134737_eb58c876_1683771.png" alt="输入图片说明" title="屏幕截图.png"></p>
+<p>问题解决：</p>
+<pre><code>Xcode -&gt; File -&gt; Workspace Settings -&gt; Build System -&gt;legacy build system
+或者:
+Xcode -&gt; File -&gt; Project Settings -&gt; Build System -&gt;legacy build system
+</code></pre>
+<p><img src="https://images.gitee.com/uploads/images/2020/0825/135421_0aee21ea_1683771.png" alt="输入图片说明" title="屏幕截图.png"></p></div><div class='title'>获取OAID匿名设备标识符</div><div class='content'><p>由移动安全联盟组织提供的开发库，下载地址：<a href="http://www.msa-alliance.cn/col.jsp?id=120">http://www.msa-alliance.cn/col.jsp?id=120</a></p>
+<p>已下载oaid_sdk_1.0.23版本，压缩包查看： <a href="librariy/android%E8%8E%B7%E5%8F%96oaid%E4%BE%9D%E8%B5%96%E5%BA%93-msa/oaid_sdk_1.0.23.zip">librariy/android获取oaid依赖库-msa/oaid_sdk_1.0.23.zip</a></p>
+<p>二. SDK 获取方式
+MSA 统一 SDK 官方下载地址：
+移动安全联盟官网：<a href="http://www.msa-alliance.cn/">http://www.msa-alliance.cn/</a></p>
+<p>三. 调用方法
+1、把 oaid_sdk_x.x.x.aar 拷贝到项的 libs 目录，并设置依赖，其中 x.x.x 代表版本号。
+2、将 supplierconfig.json 拷贝到项目 assets 目录下，并修改里边对应内 容，特别是需要设置 appid 的部分。需要设置 appid 的部分需要去对应厂商的应 用商店里注册自己的 app。需要注意的是，其中 label 部分内容无需修改。
+3、设置依赖
+implementation files(‘libs/oaid_sdk_x.x.x.aar’)
+4、设置 gradle 编译选项，开发者可以根据自己对平台的选择进行合理配置</p>
+<pre><code>ndk { 
+    abiFilters  'armeabi-v7a','x86','arm64-v8a','x86_64','armeabi' 
+} 
+</code></pre>
+<p>考虑到 sdk 兼容性，sdk 包默认集成了所有常用 abi 的 so,包括 armeabi, armeabi-v7a, arm64-v8a, x84, x84_64 共五种，如果需要减小 SDK 体积，可以 使用压缩工具打开 aar 文件，手动删除多余的架构。</p>
+<p>5、代码调用</p>
+<p>a、调用方法获取设备 ID，事例代码详见附件 DemoHelper.java</p>
+<pre><code>private int CallFromReflect(Context cxt){ 
+    return MdidSdkHelper.InitSdk(cxt,true,this); 
+} 
+</code></pre>
+<p>b、设置混淆</p>
+<pre><code>-keep class XI.CA.XI.**{*;} 
+-keep class XI.K0.XI.**{*;} 
+-keep class XI.XI.K0.**{*;} 
+-keep class XI.vs.K0.**{*;} 
+-keep class XI.xo.XI.XI.**{*;} 
+-keep class com.asus.msa.SupplementaryDID.**{*;} 
+-keep class com.asus.msa.sdid.**{*;} 
+-keep class com.bun.lib.**{*;} 
+-keep class com.bun.miitmdid.**{*;} 
+-keep class com.huawei.hms.ads.identifier.**{*;} 
+-keep class com.samsung.android.deviceidservice.**{*;} 
+-keep class org.json.**{*;} 
+-keep public class com.netease.nis.sdkwrapper.Utils {public &lt;methods&gt;;} 
+</code></pre>
+<p>6、初始化 sdk 返加的错误码
+表一 错误信息，引用 ErrorCode 类 错误信息 值 说明</p>
+<pre><code>INIT_ERROR_MANUFACTURER_NOSUPPORT  1008611 不支持的厂商 
+INIT_ERROR_DEVICE_NOSUPPORT 1008612 不支持的设备 
+INIT_ERROR_LOAD_CONFIGFILE 1008613 加载配置文件失败 
+INIT_ERROR_RESULT_DELAY 1008614 信息将会延迟返回，获 取数据可能在异步线 程，取决于设备 
+INIT_HELPER_CALL_ERROR 1008615 反射调用失败 
+INIT_ERROR_CONFIGFILE_MISMATCH 1008616 配置文件不匹配 
+</code></pre>
+<p>四. IdSupplier 接口说明
+补充设备标识获取接口包括补充设备标识状态获取接口、匿名设备标识符获 取接口、开发者匿名设备标识符获取接口、应用匿名设备标识符获取接口。</p>
+<pre><code>1、补充设备标识状态获取接口 
+该接口用于获取移动智能终端是否支持补充设备标识体系，确认支持后，可 以继续获取所需设备标识符。 
+public boolean isSupported() 
+boolean：是否支持补充设备标 识符获取 
+true 为支持，false 为不支持 
+
+2、匿名设备标识符获取接口
+String getOAID()
+String：返回匿名设备标识符 或空字符串
+匿名设备标识符最长 64 位， 返回空字符串表示不支持，异 常状态包括网络异常、appid 异常、应用异常等 
+
+3、开发者匿名设备标识符获取接口
+String getVAID()
+String：返回开发者匿名设备 标识符或空字符串
+开发者匿名设备标识符最长 64 位，返回空字符串表示不 支持，异常状态包括网络异 常、appid 异常、应用异常等 
+
+4、应用匿名设备标识符获取接口 
+String getAAID() 
+String：返回应用匿名设备标 识符或空字符串 
+应用匿名设备标识符最长 64 位，返回空字符串表示不支 持，异常状态包括网络异常、 appid 异常、应用异常等 
+</code></pre>
+<p>五. 使用建议</p>
+<pre><code>1、调用 InitSdk 后，先检查返回值，如果返回值是不支持的设备或厂商，监 听器也不会触发，如果是加载配置文件失败，联系我们的客服。 
+2、VAID/AAID 在初次调用时生成，生成需要访问网络，请确保网络通畅并可 访问公网。 
+3、同一设备中存有多个同一开发者应用，若需在单个应用卸载时保证 VAID 不被重置，需在应用被卸载前，已有另外同一开发者 ID 的应用也读取过 VAID， 否则认定该开发者无需使用 VAID，值将被重置。 
+4、部分厂商，若应用未在其开发者平台后台上架，则认定未非法应用，无法 生成 VAID，手机 LOG 中将会有相关异常值输出。 
+5、在用户手机处于弱网、无法访问公网或非法应用情形下频繁调用 VAID 和 AAID 读取接口，终端会累计其调用次数，并限时限制其读取。 
+6、由于返回值可能为 null，使用逻辑判断中建议做判空处理。 
+7、若有表一中的异常出现，会有相关 Log 打出。 
+8、INIT_ERROR_DEVICE_NOSUPPORT 和 INIT_HELPER_CALL_ERROR 这两个暂时 不会走回调，后续会调整。
+</code></pre>
+<pre><code>package com.mdid.msa; 
+ 
+import android.content.Context; 
+import android.support.annotation.NonNull; 
+import android.util.Log; 
+ 
+import com.bun.miitmdid.core.ErrorCode; 
+import com.bun.miitmdid.core.MdidSdkHelper; 
+import com.bun.supplier.IIdentifierListener; 
+import com.bun.supplier.IdSupplier; 
+ 
+/** 
+ * Created by caict on 2020/6/8. 
+ */ 
+ 
+public class DemoHelper implements IIdentifierListener { 
+ 
+    private AppIdsUpdater _listener; 
+    public DemoHelper(AppIdsUpdater callback){ 
+        _listener=callback; 
+    } 
+ 
+    public void getDeviceIds(Context cxt){ 
+ 
+        long timeb=System.currentTimeMillis(); 
+        // 方法调用 
+
+        int nres = CallFromReflect(cxt); 
+         
+        long timee=System.currentTimeMillis(); 
+        long offset=timee-timeb; 
+        if(nres == ErrorCode.INIT_ERROR_DEVICE_NOSUPPORT){//不支持 的设备 
+ 
+        }else if( nres == ErrorCode.INIT_ERROR_LOAD_CONFIGFILE){// 加载配置文件出错 
+ 
+        }else if(nres == ErrorCode.INIT_ERROR_MANUFACTURER_NOSUPPORT){//不支持的设备厂商 
+ 
+        }else if(nres == ErrorCode.INIT_ERROR_RESULT_DELAY){//获取 接口是异步的，结果会在回调中返回，回调执行的回调可能在工作线程 
+ 
+        }else if(nres == ErrorCode.INIT_HELPER_CALL_ERROR){//反射调 用出错 
+ 
+        } 
+        Log.d(getClass().getSimpleName(),"return value: "+String.valueOf(nres)); 
+ 
+    } 
+ 
+    /* 
+    * 方法调用 
+    * */ 
+    private int CallFromReflect(Context cxt){ 
+        return MdidSdkHelper.InitSdk(cxt,true,this); 
+    } 
+ 
+     /* 
+    * 获取相应 id 
+    * */ 
+    @Override 
+    public void OnSupport(boolean isSupport, IdSupplier _supplier) 
+    { 
+        if(_supplier==null) { 
+            return; 
+        } 
+        String oaid=_supplier.getOAID(); 
+        String vaid=_supplier.getVAID(); 
+        String aaid=_supplier.getAAID(); 
+        StringBuilder builder=new StringBuilder(); 
+        builder.append("support: ").append(isSupport?"true":"false").append("\n"); 
+        builder.append("OAID: ").append(oaid).append("\n"); 
+        builder.append("VAID: ").append(vaid).append("\n"); 
+        builder.append("AAID: ").append(aaid).append("\n"); 
+        String idstext=builder.toString(); 
+        if(_listener!=null){ 
+            _listener.OnIdsAvalid(idstext); 
+        } 
+    } 
+ 
+    public interface AppIdsUpdater{ 
+        void OnIdsAvalid(@NonNull  String ids); 
+    } 
+ 
+}  
+</code></pre></div><div class='title'>对内容进行hash（加密）输出crc32</div><div class='content'><pre><code>function crc32(str: string) {
+    if (!str) return;
+    let table: number[] = crc32["table"];
+    if (!table) {
+        let c = 0,
+            n = 0,
+            k = 0,
+            poly = 0xEDB88320;
+        
+        table = crc32["table"] = [];
+        for (n = 0; n &lt; 256; n++) {
+            c = n;
+            for (k = 0; k &lt; 8; k++) {
+                c = (c &amp; 1) ? poly ^ (c &gt;&gt;&gt; 1) : c &gt;&gt;&gt; 1;
+            }
+            table[n] = c &gt;&gt;&gt; 0;
+        }
+    }
+
+    let str2Arr = str.split("").map((c: string) =&gt; c.charCodeAt(0));
+    let crc = -1, i = 0, l = str2Arr.length;
+    for (i = 0; i &lt; l; i++) {
+        crc = (crc &gt;&gt;&gt; 8) ^ table[(crc ^ str2Arr[i]) &amp; 0xff];
+    }
+    crc = (crc ^ -1) &gt;&gt;&gt; 0;
+    return crc.toString(16);
+}
+</code></pre></div><div class='title'>nodejs</div><div class='content'></div><div class='title'>Windows</div><div class='content'></div><div class='title'>激活Windows方法</div><div class='content'><p>使用管理员身份运行cmd，执行以下命令：</p>
+<pre><code>slmgr /skms kms.03k.org
+slmgr /ato
+</code></pre></div>
+          </div>
+        </div>
+      </div>
+      </div>
+  </div>
+</body>
+</html>
